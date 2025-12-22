@@ -1,0 +1,6 @@
+#!include(adjective.csv)
+#!include(purpose.csv)
+#!include(form.csv)
+Example
+${adjective} ${purpose} ${form}
+${purpose} ${form}

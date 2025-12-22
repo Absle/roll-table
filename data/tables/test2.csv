@@ -1,0 +1,5 @@
+#!include(test1.csv)
+field
+"${test1[A]} and it's E ${~[E]}, then warning ${test1[B} but still D ${~[D]}"
+"B ${test1[B]} and its E ${~[C]}, then warning A ${test1[C} and another ${test1[D]}"
+All of them: ${test1} | ${~[B]} | ${~[C]} | ${~[D]} | ${~[E]}

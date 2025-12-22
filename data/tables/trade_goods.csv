@@ -1,0 +1,38 @@
+#!include(common_electronics/example.csv) as common_electronics,,,,,
+Type,TradeCodes,Tons,BasePrice,HazardRating,Example
+Common Electronics,All,2d6*10,20000,Safe,${common_electronics}
+Common Industrial Goods,All,2d6*10,10000,Safe,${common_electronics}
+Common Manufactured Goods,All,2d6*10,20000,Safe,${common_electronics}
+Common Raw Materials,All,2d6*20,5000,Safe,${common_electronics}
+Common Consumables,All,2d6*20,500,Safe,${common_electronics}
+Common Ore,All,2d6*20,1000,Safe,${common_electronics}
+Advanced Electronics,"In,Ht",1d6*5,100000,Troublesome,${common_electronics}
+Advanced Machine Parts,"In,Ht",1d6*5,75000,Troublesome,${common_electronics}
+Advanced Manufactured Goods,"In,Ht",1d6*5,10000,Troublesome,${common_electronics}
+Advanced Weapons,"In,Ht",1d6*5,150000,Dangerous,${common_electronics}
+Advanced Vehicles,"In,Ht",1d6*5,180000,Dangerous,${common_electronics}
+Biochemicals,"Ag,Wa",1d6*5,50000,Dangerous,${common_electronics}
+Crystals & Gems,"As,De,Ic",1d6*5,20000,Safe,${common_electronics}
+Cybernetics,Ht,1d6,250000,Troublesome,${common_electronics}
+Live Animals,"Ag,Ga",1d6*10,10000,Troublesome,${common_electronics}
+Dangerous Animals,"Ag,Ga",1d6*5,15000,Dangerous,${common_electronics}
+Luxury Consumables,"Ag,Ga,Wa",1d6*10,20000,Troublesome,${common_electronics}
+Luxury Goods,Hi,1d6,20000,Safe,${common_electronics}
+Medical Supplies,"Ht,Hi",1d6*5,50000,Safe,${common_electronics}
+Industrial Chemicals,"De,Fl Ic,Wa",1d6*10,10000,Dangerous,${common_electronics}
+Pharmaceuticals,"As,De,Hi,Wa",1d6,100000,Troublesome,${common_electronics}
+Polymers,In,1d6*10,7000,Safe,${common_electronics}
+Precious Metals,"As,De,Ic,Fl",1d6,50000,Safe,${common_electronics}
+Radioactives,"As,De,Lo",1d6,1000000,Dangerous,${common_electronics}
+Robots,In,1d6*5,400000,Troublesome,${common_electronics}
+Spices,"Ga,De,Wa",1d6*10,6000,Safe,${common_electronics}
+Textiles,"Ag,Ni",1d6*20,3000,Safe,${common_electronics}
+Uncommon Ore,"As,Ic",1d6*20,5000,Safe,${common_electronics}
+Uncommon Raw Materials,"Ag,De,Wa",1d6*10,20000,Safe,${common_electronics}
+Wood,"Ag,Ga",1d6*20,1000,Safe,${common_electronics}
+Vehicles,"In,Ht",1d6*10,15000,Troublesome,${common_electronics}
+"Biochemicals, Illegal","Ag,Wa",1d6*5,50000,Illegal,${common_electronics}
+"Cybernetics, Illegal",Ht,1d6,250000,Illegal,${common_electronics}
+"Drugs, Illegal","As,De,Hi,Wa",1d6,100000,Illegal,${common_electronics}
+"Luxuries, Illegal","Ag,Ga,Wa",1d6,50000,Illegal,${common_electronics}
+"Weapons, Illegal","In,Ht",1d6*5,150000,Illegal,${common_electronics}

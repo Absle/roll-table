@@ -1,0 +1,4 @@
+#!include(test2.csv)
+field
+anything from test2.csv: ${test2}
+# causes error: ${dne.csv}
