@@ -88,10 +88,11 @@ class Table:
 
         # Pre-processing include replacement aliases
         raw_table = [r for r in raw_csv if not r.startswith(self.COMMENT)]
-        for alias, path in namespace.items():
-            raw_table = list(
-                map(lambda r: r.replace("${" + alias, "${" + str(path)), raw_table)
-            )
+
+        # Skip first line to avoid changing headers
+        for i in range(1, len(raw_table)):
+            for alias, path in namespace.items():
+                raw_table[i] = raw_table[i].replace("${" + alias, "${" + str(path))
 
         dict_reader = csv.DictReader(raw_table)
         self.field_names = list(dict_reader.fieldnames)  # type: ignore
