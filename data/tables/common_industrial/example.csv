@@ -1,0 +1,6 @@
+#!include(adjective.csv)
+#!include(kind.csv)
+#!include(form.csv)
+Example
+${kind} ${form}
+${adjective} ${kind} ${form}

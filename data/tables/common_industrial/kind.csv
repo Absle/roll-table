@@ -1,0 +1,21 @@
+#!include(reactor_kind.csv)
+#!include(processing_kind.csv)
+Kind
+machine
+refinery
+industrial
+aircraft
+gravtech
+civilian vehicle
+construction vehicle
+mining vehicle
+mining
+scanner
+power station
+airlock
+pressure suit
+environmental suit
+${reactor_kind}reactor
+${processing_kind} processing
+atmospheric filter
+life support
