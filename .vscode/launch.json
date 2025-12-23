@@ -1,0 +1,25 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // Debug the currently selected Python file
+            "name": "PyDebug: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+        },
+        {
+            // Debug the roll-table package with the current file as the target
+            "name": "PyDebug: roll-table",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/roll_table/__init__.py",
+            "console": "integratedTerminal",
+            "args": [ "${file}" ]
+        }
+    ]
+}

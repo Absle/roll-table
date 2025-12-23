@@ -33,6 +33,9 @@ class TableManager:
             cursor = 0
             while cursor < len(rep_str):
                 start = rep_str.find(Table.OP_REPLACE_OPEN, cursor)
+                if start < 0:
+                    # No more string replacements to be found
+                    break
                 cursor = start + len(Table.OP_REPLACE_OPEN)
                 end = rep_str.find(Table.OP_REPLACE_CLOSE, cursor)
                 cursor = end + len(Table.OP_REPLACE_CLOSE)

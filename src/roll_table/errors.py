@@ -6,6 +6,12 @@ class ResolveError(Exception):
         super().__init__(f"pass {depth}: {op}: {message}")
 
 
+class InvalidFieldError(Exception):
+    def __init__(self, csv_path: str, invalid_fields: set):
+        invalid_str = ", ".join(invalid_fields)
+        super().__init__(f"{csv_path} does not contain fields {invalid_str}")
+
+
 class RollTableWarning(UserWarning):
     def __init__(self, message: str):
         super().__init__(message)
