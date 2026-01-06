@@ -9,7 +9,7 @@ PROG = "roll-table"
 
 
 def _errout(e: Exception):
-    print(f"{type(e).__name__}: {str(e)}", file=sys.stderr)
+    print(f"{PROG}: {type(e).__name__}: {str(e)}", file=sys.stderr)
     exit(1)
 
 
@@ -29,14 +29,14 @@ def _arg_parser() -> ArgumentParser:
         metavar="N",
         type=int,
         default=1,
-        help="number of times to repeat roll",
+        help="repeat the specified roll N times",
     )
     parser.add_argument("path", metavar="PATH", type=str, help="path to csv file")
     parser.add_argument(
         "fields",
         metavar="FIELD",
         nargs="*",
-        help="field names to print (case-sensitive)",
+        help="space-separated list of field names to print (case-sensitive)",
     )
     return parser
 

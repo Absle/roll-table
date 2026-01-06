@@ -9,7 +9,9 @@ class ResolveError(Exception):
 class InvalidFieldError(Exception):
     def __init__(self, csv_path: str, invalid_fields: set):
         invalid_str = ", ".join(invalid_fields)
-        super().__init__(f"{csv_path} does not contain fields {invalid_str}")
+        super().__init__(
+            f"{csv_path} does not have the following fields: {invalid_str}"
+        )
 
 
 class RollTableWarning(UserWarning):
