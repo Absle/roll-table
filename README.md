@@ -10,7 +10,32 @@ randomization tables.
 
 ## Installation
 
-TODO; right now you'd have to just build and install from source using `uv`.
+TODO; right now you would probably have to just build and install from source using `uv`. Other
+tools that support the `pyproject.toml` standard may also work.
+
+To install from source, at the root of the repo run this command:
+
+      $ uv tool install --from . roll-table
+
+If you already have it installed, but want to update after a fresh code pull:
+
+      $ uv tool reinstall --from . roll-table
+
+Both of these commands will have `uv` attempt to install a `roll-table` executable somewhere that
+is available on your `PATH`. You can see exactly where this is with this command:
+
+      $ uv tool dir --bin
+
+The default install location executables for each OS is documented [here][uv-storage-exe-dir].
+Information on customizing install location of the executable can be found
+[here][uv-storage-tool-exes]. Information on customizing the Python package install location can be
+found [here][uv-storage-tools]. General information on how `uv` handles tools and tool installation
+can be found [here][uv-concepts-tools].
+
+[uv-storage-exe-dir]: https://docs.astral.sh/uv/reference/storage/#executable-directory
+[uv-storage-tool-exes]: https://docs.astral.sh/uv/reference/storage/#tool-executables
+[uv-storage-tools]: https://docs.astral.sh/uv/reference/storage/#tools
+[uv-concepts-tools]: https://docs.astral.sh/uv/concepts/tools/#tools
 
 ## Creating Tables
 
