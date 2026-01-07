@@ -1,8 +1,62 @@
+import ast
+import random
+import re
 from pathlib import Path
 from warnings import warn
 
-from roll_table.errors import FieldResolveWarning, ResolveError
+from roll_table.errors import FieldResolveWarning, ResolveError, UnsafeExpressionError
 from roll_table.table import Table
+
+DICE_RE = re.compile(r"([0-9]+)d([0-9]+)")
+MATH_CHARS = "0123456789()%*/+-"
+
+LEGAL_OP_KINDS = [ast.BinOp, ast.UnaryOp, ast.Constant]
+LEGAL_BINARY_OPS = [ast.Add, ast.Sub, ast.Mult, ast.Div, ast.FloorDiv, ast.Mod, ast.Pow]
+LEGAL_UNARY_OPS = [ast.UAdd, ast.USub]
+LEGAL_AST_NODES = LEGAL_OP_KINDS + LEGAL_BINARY_OPS + LEGAL_UNARY_OPS
+
+
+def _roll_dice(num_dice: int, num_sides: int) -> int:
+    if num_dice <= 0 or num_sides <= 0:
+        return 0
+    return sum([random.randint(1, num_sides) for _ in range(num_dice)])
+
+
+def _resolve_dice_str(dice_str: str) -> int | float:
+    expression = dice_str
+    for num_dice, num_sides in DICE_RE.findall(dice_str):
+        roll = _roll_dice(int(num_dice), int(num_sides))
+        to_replace = num_dice + "d" + num_sides
+        expression = expression.replace(to_replace, str(roll), 1)
+
+    no_whitespace_expr = "".join(expression.split())
+    if not all([c in MATH_CHARS for c in no_whitespace_expr]):
+        raise UnsafeExpressionError(
+            "found non-math character in expression", dice_str, expression
+        )
+
+    tree = ast.parse(expression, mode="eval")
+    # print(ast.dump(tree, indent=2))
+
+    # Walk through the AST and raise an exception if any illegal ops are found
+    for i, node in enumerate(ast.walk(tree)):
+        if type(node) is ast.Expression:
+            if i == 0:
+                # Only the first node in the tree can be an expression
+                continue
+            else:
+                raise UnsafeExpressionError(
+                    "found invalid Expression node", dice_str, expression
+                )
+        elif type(node) in LEGAL_AST_NODES:
+            continue
+        else:
+            raise UnsafeExpressionError(
+                f"found invalid node type {type(node).__name__}",
+                dice_str,
+                expression,
+            )
+    return eval(compile(tree, "<string>", "eval"), {"__builtins__": {}})
 
 
 class TableManager:
@@ -98,3 +152,20 @@ class TableManager:
         if path_key not in self.tables:
             self.add_table(table_path)
         return self.tables[path_key].roll()
+
+
+# TODO: remove
+if __name__ == "__main__":
+    # Should print -30.0
+    print(_resolve_dice_str("-(1 + 2 - 3 * 4 / 5 ** 6 // 7) - +(8 + 9 + 10)"))
+
+    histo = {}
+    for _ in range(1000):
+        result = _resolve_dice_str("2d6")
+        if result in histo:
+            histo[result] += 1
+        else:
+            histo[result] = 1
+    for k in range(15):
+        if k in histo:
+            print(f"{k}: {histo[k]}")
