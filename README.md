@@ -56,13 +56,17 @@ the path separator.
 
 Included tables are assigned a name for referencing within string replacements. By default this
 name is the base file name without the file extension. So for example, `#!include(other.csv)` will
-receive the reference name "other" and can be referenced in a string replacement like this:
+receive the reference name "`other`" and can be referenced in a string replacement like this:
 `${other}`. See the [string replacement section](#string-replacement-expressions) for more
 information.
 
 You can customize this reference name by adding `as <alias>` to the end of the include line, which
 will change the reference name to "`<alias>`". For example, `#!include(other.csv) as another` will
 allow you to reference `other.csv` like this: `${another}`.
+
+In the event two or more reference names are the same, the first one included is given priority, and
+all subsequent ones are skipped. If you have two included files with the same filename, use aliasing
+to give each something more descriptive.
 
 ## String Replacement Expressions
 
@@ -73,20 +77,21 @@ replacement expressions can be inside of the same string, and replacement expres
 recursively.
 
 When using the CLI tool, in order to avoid getting stuck in an infinite loop replacement
-expressions will only be recursively resolved to a depth of 100. This is also the default when using the library API, but can be configured in the parameters.
+expressions will only be recursively resolved to a depth of 100. This is also the default when
+using the library API, but can be configured in the parameters.
 
 Replacement expressions are resolved left-to-right, and when recursively resolving string
 replacements, subsequent replacment expressions are only resolved *after* existing replacement
 expressions, again left-to-right. So for example, say we have the following set of replacement
 expressions and results:
 
-| Expression  | Result               |
-| ----------- | -------------------- |
-| `${first}`  | `${fourth} ${fifth}` |
-| `${second}` | 2                    |
-| `${third}`  | 3                    |
-| `${fourth}` | 4                    |
-| `${fifth}`  | 5                    |
+| Expression  | Resulting Replacement |
+| ----------- | --------------------- |
+| `${first}`  | `${fourth} ${fifth}`  |
+| `${second}` | 2                     |
+| `${third}`  | 3                     |
+| `${fourth}` | 4                     |
+| `${fifth}`  | 5                     |
 
 Then this string replacement would resolve in the following sequence:
 
@@ -101,7 +106,8 @@ Then this string replacement would resolve in the following sequence:
 
 ### Syntax
 
-Let's assume we have included a file like so: `#!include(other.csv)`.
+Let's assume we have included a file like so: `#!include(other.csv)`. This results in the default
+reference name for this table "`other`".
 
 #### Default Reference
 
@@ -158,5 +164,5 @@ This is just generally the style I follow while working on my tables, and most o
 test tables in this repo reflect that.
 
 - Directives at the top
-- Use `snake_case` when naming directories and CSV files
+- Use `snake_case` when naming directories, CSV files, and include aliases
 - Use `PascalCase` for the fieldnames in the header line to make them stand out a bit visually
