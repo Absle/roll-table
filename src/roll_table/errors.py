@@ -15,12 +15,10 @@ class InvalidFieldError(Exception):
 
 
 class UnsafeExpressionError(Exception):
-    def __init__(self, message: str, orig_expr: str, math_expr: str):
-        self._expr_err_msg = (
-            f"while evaluating '{orig_expr}': resolved to '{math_expr}': {message}, "
-            "this expression will not be resolved"
+    def __init__(self, message: str, expr: str):
+        super().__init__(
+            f"while evaluating '{expr}': {message}, this expression will not be resolved"
         )
-        super().__init__(self._expr_err_msg)
 
 
 class RollTableWarning(UserWarning):
@@ -44,8 +42,3 @@ class ResolveWarning(RollTableWarning):
 class FieldResolveWarning(ResolveWarning):
     def __init__(self, message: str, depth: int, op: str):
         super().__init__(f"pass {depth}: {op}: {message}, using first field instead...")
-
-
-class UnsafeExpressionWarning(ResolveWarning):
-    def __init__(self, err: UnsafeExpressionError):
-        super().__init__(err._expr_err_msg + ", skipping...")

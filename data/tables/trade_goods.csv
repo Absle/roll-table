@@ -1,39 +1,39 @@
 #!include(common_electronics/example.csv) as common_electronics,,,,,
 #!include(common_industrial/example.csv) as common_industrial,,,,,
 Type,TradeCodes,Tons,BasePrice,HazardRating,Example
-Common Electronics,All,2d6*10,20000,Safe,${common_electronics}
-Common Industrial Goods,All,2d6*10,10000,Safe,${common_industrial}
-Common Manufactured Goods,All,2d6*10,20000,Safe,${common_industrial}
-Common Raw Materials,All,2d6*20,5000,Safe,${common_industrial}
-Common Consumables,All,2d6*20,500,Safe,${common_industrial}
-Common Ore,All,2d6*20,1000,Safe,${common_industrial}
-Advanced Electronics,"In,Ht",1d6*5,100000,Troublesome,${common_industrial}
-Advanced Machine Parts,"In,Ht",1d6*5,75000,Troublesome,${common_industrial}
-Advanced Manufactured Goods,"In,Ht",1d6*5,10000,Troublesome,${common_industrial}
-Advanced Weapons,"In,Ht",1d6*5,150000,Dangerous,${common_industrial}
-Advanced Vehicles,"In,Ht",1d6*5,180000,Dangerous,${common_industrial}
-Biochemicals,"Ag,Wa",1d6*5,50000,Dangerous,${common_industrial}
-Crystals & Gems,"As,De,Ic",1d6*5,20000,Safe,${common_industrial}
-Cybernetics,Ht,1d6,250000,Troublesome,${common_industrial}
-Live Animals,"Ag,Ga",1d6*10,10000,Troublesome,${common_industrial}
-Dangerous Animals,"Ag,Ga",1d6*5,15000,Dangerous,${common_industrial}
-Luxury Consumables,"Ag,Ga,Wa",1d6*10,20000,Troublesome,${common_industrial}
-Luxury Goods,Hi,1d6,20000,Safe,${common_industrial}
-Medical Supplies,"Ht,Hi",1d6*5,50000,Safe,${common_industrial}
-Industrial Chemicals,"De,Fl Ic,Wa",1d6*10,10000,Dangerous,${common_industrial}
-Pharmaceuticals,"As,De,Hi,Wa",1d6,100000,Troublesome,${common_industrial}
-Polymers,In,1d6*10,7000,Safe,${common_industrial}
-Precious Metals,"As,De,Ic,Fl",1d6,50000,Safe,${common_industrial}
-Radioactives,"As,De,Lo",1d6,1000000,Dangerous,${common_industrial}
-Robots,In,1d6*5,400000,Troublesome,${common_industrial}
-Spices,"Ga,De,Wa",1d6*10,6000,Safe,${common_industrial}
-Textiles,"Ag,Ni",1d6*20,3000,Safe,${common_industrial}
-Uncommon Ore,"As,Ic",1d6*20,5000,Safe,${common_industrial}
-Uncommon Raw Materials,"Ag,De,Wa",1d6*10,20000,Safe,${common_industrial}
-Wood,"Ag,Ga",1d6*20,1000,Safe,${common_industrial}
-Vehicles,"In,Ht",1d6*10,15000,Troublesome,${common_industrial}
-"Biochemicals, Illegal","Ag,Wa",1d6*5,50000,Illegal,${common_industrial}
-"Cybernetics, Illegal",Ht,1d6,250000,Illegal,${common_industrial}
-"Drugs, Illegal","As,De,Hi,Wa",1d6,100000,Illegal,${common_industrial}
-"Luxuries, Illegal","Ag,Ga,Wa",1d6,50000,Illegal,${common_industrial}
-"Weapons, Illegal","In,Ht",1d6*5,150000,Illegal,${common_industrial}
+Common Electronics,All,${2d6*10},20000,Safe,${common_electronics}
+Common Industrial Goods,All,${2d6*10},10000,Safe,${common_industrial}
+Common Manufactured Goods,All,${2d6*10},20000,Safe,${common_industrial}
+Common Raw Materials,All,${2d6*20},5000,Safe,${common_industrial}
+Common Consumables,All,${2d6*20},500,Safe,${common_industrial}
+Common Ore,All,${2d6*20},1000,Safe,${common_industrial}
+Advanced Electronics,"In,Ht",${1d6*5},100000,Troublesome,${common_industrial}
+Advanced Machine Parts,"In,Ht",${1d6*5},75000,Troublesome,${common_industrial}
+Advanced Manufactured Goods,"In,Ht",${1d6*5},10000,Troublesome,${common_industrial}
+Advanced Weapons,"In,Ht",${1d6*5},150000,Dangerous,${common_industrial}
+Advanced Vehicles,"In,Ht",${1d6*5},180000,Dangerous,${common_industrial}
+Biochemicals,"Ag,Wa",${1d6*5},50000,Dangerous,${common_industrial}
+Crystals & Gems,"As,De,Ic",${1d6*5},20000,Safe,${common_industrial}
+Cybernetics,Ht,${1d6},250000,Troublesome,${common_industrial}
+Live Animals,"Ag,Ga",${1d6*10},10000,Troublesome,${common_industrial}
+Dangerous Animals,"Ag,Ga",${1d6*5},15000,Dangerous,${common_industrial}
+Luxury Consumables,"Ag,Ga,Wa",${1d6*10},20000,Troublesome,${common_industrial}
+Luxury Goods,Hi,${1d6},20000,Safe,${common_industrial}
+Medical Supplies,"Ht,Hi",${1d6*5},50000,Safe,${common_industrial}
+Industrial Chemicals,"De,Fl Ic,Wa",${1d6*10},10000,Dangerous,${common_industrial}
+Pharmaceuticals,"As,De,Hi,Wa",${1d6},100000,Troublesome,${common_industrial}
+Polymers,In,${1d6*10},7000,Safe,${common_industrial}
+Precious Metals,"As,De,Ic,Fl",${1d6},50000,Safe,${common_industrial}
+Radioactives,"As,De,Lo",${1d6},1000000,Dangerous,${common_industrial}
+Robots,In,${1d6*5},400000,Troublesome,${common_industrial}
+Spices,"Ga,De,Wa",${1d6*10},6000,Safe,${common_industrial}
+Textiles,"Ag,Ni",${1d6*20},3000,Safe,${common_industrial}
+Uncommon Ore,"As,Ic",${1d6*20},5000,Safe,${common_industrial}
+Uncommon Raw Materials,"Ag,De,Wa",${1d6*10},20000,Safe,${common_industrial}
+Wood,"Ag,Ga",${1d6*20},1000,Safe,${common_industrial}
+Vehicles,"In,Ht",${1d6*10},15000,Troublesome,${common_industrial}
+"Biochemicals, Illegal","Ag,Wa",${1d6*5},50000,Illegal,${common_industrial}
+"Cybernetics, Illegal",Ht,${1d6},250000,Illegal,${common_industrial}
+"Drugs, Illegal","As,De,Hi,Wa",${1d6},100000,Illegal,${common_industrial}
+"Luxuries, Illegal","Ag,Ga,Wa",${1d6},50000,Illegal,${common_industrial}
+"Weapons, Illegal","In,Ht",${1d6*5},150000,Illegal,${common_industrial}
