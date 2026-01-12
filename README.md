@@ -31,17 +31,17 @@ The default install location executables for each OS is documented [here][uv-sto
 
 Tables are parsed in a line-based fashion, and each line fits into one of the following categories:
 
-1. **Directives:** all lines starting with '`#!`' are treated as directives. See the [directives section](#directives) below.
+1. **Directives:** all lines starting with '`#!`' are treated as directives. See the [directives section](#directives) for more info.
 
 2. **Comments:** all non-directive lines starting with a '`#`' are treated as comments. Comments are ignored by the parser, and can be used for the benefit of the table author.
 
-3. **Header:** The first non-directive, non-comment line is treated as the header of the table, and is used to assign fieldnames to each column for the rest of the table data. The header is **mandatory**, even for simple tables with only one column.
+3. **Header:** The first non-directive, non-comment line is treated as the header of the table, and is used to assign field names to each column for the rest of the table data. The header is **mandatory**, even for simple tables with only one column.
 
-4. **Data:** All other lines in the table are treated as data lines. Internally, data line are parsed as dictionaries whose keys are the fieldnames indicated by the header line, and whose fields are the contents of the corresponding columns. Columns without corresponding fieldnames are ignored by the parser, however empty columns with fieldnames will still have empty strings assigned to their fields.
+4. **Data:** All other lines in the table are treated as data lines. Internally, data lines are parsed as dictionaries whose keys are the field names indicated by the header line, and whose fields are the contents of the corresponding columns. Columns without corresponding field names are ignored by the parser, however empty columns with field names will still have empty strings assigned to those fields.
 
 ### Directives
 
-Directives are commands performed by the parser before the data portion of the tables is processed. Directive lines can be place anywhere in the file, but I would suggest placing all of them either at the very top or the very bottom of the file. See the [style section](#table-style-guide) below.
+Directives are commands performed by the parser before the data portion of the tables is processed. Directive lines can be place anywhere in the file, but I would suggest placing all of them either at the very top or the very bottom of the file. See the [style guide section](#table-style-guide) for more info.
 
 Because of the difficult nature of quotation marks in CSV files, no directive will ever need quotation marks in its arguments. Just put the string parameters directly in the parentheses, and `roll-table` will handle the rest.
 
@@ -51,21 +51,38 @@ Currently the only available directive is the `include` directive, though this m
 
 > usage: `#!include(<file_path>)[ as <alias>]`
 
-Makes the table located at `<file_path>` available for string replacements within the current table. The file path **must be relative** to the current file; file paths with no directories in them will search in the same directory as the current file. The file path must also use forward slashes as the path separator.
+Makes the table located at `<file_path>` available for string replacement expressions within the current table. The file path **must be relative** to the current file; file paths with no directories in them will search in the same directory as the current file. The file path must also use forward slashes as the path separator.
 
-Included tables are assigned a name for referencing within string replacements. By default this name is the base file name without the file extension. So for example, `#!include(other.csv)` will receive the reference name "`other`" and can be referenced in a string replacement like this: `${other}`. See the [string replacement section](#string-replacement-expressions) for more information.
+Included tables are assigned a name for referencing within replacement expressions. By default this name is the base file name without the file extension. So for example, `#!include(other.csv)` will receive the reference name "`other`" and can be referenced in a replacement expression like this: `${other}`. See the [string replacement section](#string-replacement-expressions) for more info.
 
 You can customize this reference name by adding `as <alias>` to the end of the include line, which will change the reference name to "`<alias>`". For example, `#!include(other.csv) as another` will allow you to reference `other.csv` like this: `${another}`.
 
-In the event two or more reference names are the same, the first one included is given priority, and all subsequent ones are skipped. If you have two included files with the same filename, use aliasing to give each something more descriptive.
+In the event two or more reference names are the same, the first one included is given priority, and all subsequent ones are skipped. If you have two included files with the same filename, use aliasing to ensure they have unique names.
 
 ## String Replacement Expressions
 
-String replacement expressions always start with `${` and end on the next found `}`. After the result of the replacement is, the entire expression (including the `${` and the `}`) are replaced with the result. Replacement expressions can be embedded inside of larger strings, multiple replacement expressions can be inside of the same string, and replacement expressions are resolved recursively.
+String replacement expressions currently support the following:
 
-When using the CLI tool, in order to avoid getting stuck in an infinite loop replacement expressions will only be recursively resolved to a depth of 100. This is also the default when using the library API, but can be configured in the parameters.
+- Reference data from a random row of another table using reference expressions
+- Reuse the same row from the previous reference expression
+- Resolve dice rolls to get random integers using dice operations
+- Use those random dice rolls to and other numbers in basic arithemetic operations.
 
-Replacement expressions are resolved left-to-right, and when recursively resolving string replacements, subsequent replacment expressions are only resolved *after* existing replacement expressions, again left-to-right. So for example, say we have the following set of replacement expressions and results:
+For example, after resolving all the replacement expressions in this string:
+
+      You find a ${monster} named ${~[FirstName]} ${~[LastName]} carrying ${2d10+5} gold.
+
+You might end up with:
+
+      You find a goblin named Billy Bob carrying 25 gold.
+
+Replacement expressions always start with `${` and end on the next found `}`. After the expression is resolved, the entire expression (including the `${` and the `}`) is replaced with the result. Replacement expressions can be embedded inside of larger strings, multiple expressions can be inside of the same string, and expressions are resolved recursively.
+
+When using the CLI tool, in order to avoid getting stuck in an infinite loop, replacement expressions will only be recursively resolved to a depth of 100. This is also the default behavior when using the library API, but can be configured in the parameters.
+
+### Resolution Order
+
+Replacement expressions are resolved left-to-right. When recursively resolving expressions, subsequent expressions are only resolved *after* existing expressions, again left-to-right. So for example, say we have the following set of replacement expressions and results:
 
 | Expression  | Resulting Replacement |
 | ----------- | --------------------- |
@@ -75,7 +92,7 @@ Replacement expressions are resolved left-to-right, and when recursively resolvi
 | `${fourth}` | `4`                   |
 | `${fifth}`  | `5`                   |
 
-Then this string replacement would resolve in the following sequence:
+Then the string "`${first} ${second} ${third}`" would resolve all of its replacement expressions in the following sequence:
 
 | Step | String                                  |
 | ---- | --------------------------------------- |
@@ -86,41 +103,95 @@ Then this string replacement would resolve in the following sequence:
 | 4    | `4 ${fifth} 2 3`                        |
 | 5    | `4 5 2 3`                               |
 
-### Syntax
+### Recursive vs. Nested Expressions
 
-Let's assume we have included a file like so: `#!include(other.csv)`. This results in the default reference name for this table "`other`".
+Although recursive expressions (expressions which result in more expressions) are allowed, *nested* expressions (expressions inside of other expressions) are not. You may think to try something clever likes this:
 
-#### Default Reference
+      ${some_table[${random_index}]}
+
+Unfortunately, currently this will result in an error at best, and undefined behavior at worst.
+
+The resolver treats the first closing '`}`' it finds as the end of the expression, so it will actually attempt to resolve the expression:
+
+      `${some_table[${random_index}`
+
+This will result in an error and treat the remaining "`]}`" as just part of the rest of the string.
+
+### Replacement Expression Syntax
+
+#### Reference Expressions
+
+Reference expressions deal with references to other tables included using the [`#!include` directive](#include-directive). The result of a reference expression is always the value of a *single* field from a randomly selected row in the referenced table. By default, this field is the leftmost column of the referenced table, but this behavior can be changed using indexing.
+
+For the following examples, let's assume we have included a file like so: `#!include(other.csv)`. This means we can reference this table using the default name "`other`".
+
+##### Default Reference Expression
 
 > usage: `${other}`
 
-Roll for a random row from `other.csv` and replace with the field in the leftmost column.
+Rolls for a random row from `other.csv` and replaces with the value in the leftmost field.
 
-#### Indexed Reference
+##### Indexed Reference Expression
 
-> usage: `${other[ColumnX]}`
+> usage: `${other[SomeField]}`
 
-Roll for a random row from `other.csv` and replace with the field beneath the fieldname `ColumnX`. This allows indexing to specific fields within the row.
+Rolls for a random row from `other.csv` and replaces with the value of the field named `SomeField`. This allows indexing to specific fields within the row.
 
-#### Previous Reference
+##### Previous Reference Expression
 
 > usage: `${~}`
 
-Replace with the field in the leftmost column of the row from the previous roll. So the result of this will always be from the exact same row of the previous roll, so keep the resolution order in mind when using this. This only works *within the same string*, so if the first replacement expression in a string uses `~`, it will fail to resolve.
+Replace with the value in the leftmost field of the row from the previous reference expression, meaning the result of this expression will always be from the exact same row as that of the previous expression.
 
-#### Indexed Previous Reference
+Because this expression depends on the results of a prevous expression, it will cause an error if it is the first in a string. It is also important to understand the [resolution order](#resolution-order) of expressions when using this.
 
-> usage: `${~[ColumnX]}`
+This kind of reference expression is most useful when combined with indexing to use multiple parts of the same row in a string, like so:
 
-Replace with the field beneath the fieldname `ColumnX` from the previous roll. Again, the result of this will always be from the exact same row of the previous roll, so keep the resolution order in mind when using this.
+> usage: `The first field is ${other}, and some field of the same row is ${~[SomeField]}`
+
+#### Dice-Arithmetic Expressions
+
+Dice-arithmetic expressions are for evaluating simple arithmetic and for generating random integers for use in that arithmetic. Any replacement expression will be treated as a dice-arithmetic expression by the resolver if the first character inside of the braces is any of these characters: `+-012345679(`.
+
+It is important to note that *all* dice operations will be evaluated *before* any arithmetic operations.
+
+Although dice-arithmetic expressions are resolved as one replacement expression, dice operations and arithmetic operations happen in separate steps and so their syntax should be discussed separately.
+
+##### Dice Operations
+
+> usage: `${XdY}`
+
+Chooses `X` random numbers between 1 and `Y`, and replaces with the sum of all these numbers. For example, `${2d6}` will choose 2 random numbers between 1 and 6, and be replaced by the sum of those two numbers. The `${1d100}` will give a random number between 1 and 100.
+
+All dice expressions are always resolved before any arithmetic expressions.
+
+##### Arithmetic Operations
+
+> usage: `${-(1 + 2 - 3 * 4 / 5 // 6 ** 7 % 8)}`
+
+Resolves the contained arithmetic and replaces with the result. Supports the following arithmetic operations:
+
+| Operation          | Example            |
+| ------------------ | ------------------ |
+| Addition           | `1 + 2 = 3`        |
+| Subtraction        | `2 - 3 = -1`       |
+| Multiplication     | `3 * 4 = 12`       |
+| Division           | `30 / 8 = 3.75`    |
+| Floor Division     | `30 // 8 = 3`      |
+| Modulo (Remainder) | `9 % 4 = 1`        |
+| Powers             | `2 ** 3 = 8`       |
+| Parentheses        | `(4 + 5) * 6 = 54` |
+| Negation           | `-(6 + 7) = -13`   |
 
 ## Table Style Guide
 
 For most use cases, a consistent style is probably not strictly necessary. However, one practicality to consider is the placement of directives. For table readability, it is best to place all directives together at the very top or the very bottom of the file, but there are still some things to take into consideration when choosing between these two options.
 
-Typical programming convention would place all include directives at the top, and this is slightly more convenient when editing CSV files. However, one of the advantages of using CSV files is the interoperability and portability of the format, and many third-party tools used to edit or process CSV files assume that if there is a header line, then it will always be the first line of the file. Therefore, it is possible that directives placed at the top of the file will cause more issues with third-party tools than they would if placed at the bottom.
+Typical programming convention would place all include directives at the top, and this is slightly more convenient when editing CSV files. However, one of the advantages of using CSV files is the interoperability and portability of the format, including the possibility of using third-party tools to assist in editing and processing your tables.
 
-Speaking from personal experience of using `roll-table` while developing it, I haven't run into many issues caused by this, but I also only use Excel or OpenOffice Calc to edit my randomization tables. If you plan on extensively using other third-party tools when building or using your library, it might be worth considering putting the directives at the bottom.
+Many third-party tools used to edit or process CSV files assume that if there is a header line, then it will always be the first line of the file. Because of this, it is likely that directives placed at the top of the file will cause more issues with third-party tools than they would if placed at the bottom. This could be something to consider if you plan on using other tools when building or using your library.
+
+Speaking from personal experience of using `roll-table` while developing it, I haven't run into many issues caused by this, but I also only use Excel or OpenOffice Calc to edit my randomization tables.
 
 ### The Author's Opinion
 

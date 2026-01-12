@@ -1,8 +1,5 @@
 # TODO
 
-- ~~dice rolling and/or math in replacements (`${1d6*10}`)~~
-    - update README for this feature now that it's implemented
-
 - different methods for randomizing the row
     - maybe as a `#!dice(2d6)` directive?
     - maybe as a `2d6` column with numbers/ranges in it?
@@ -33,3 +30,8 @@
 
 [pyapp-github]: https://github.com/ofek/pyapp
 [pyapp-uv]: https://ofek.dev/pyapp/latest/config/installation/#uv
+
+## DONE
+
+- ~~dice rolling and/or math in replacements (`${1d6*10}`)~~
+    - ~~update README for this feature now that it's implemented~~
