@@ -100,7 +100,7 @@ class TableManager:
             row: dict | None = None
             replacements: list[str] = []
             for op in replace_ops:
-                if op[len(Table.OP_REPLACE_OPEN)] not in "+-012345679":
+                if op[len(Table.OP_REPLACE_OPEN)] not in "+-012345679(":
                     # The start of the op does not indicate dice or aritmetic
                     value = self._resolve_replacement_expression(i, row, op)
                 else:
