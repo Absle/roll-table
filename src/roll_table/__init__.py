@@ -10,8 +10,9 @@ PROG = "roll-table"
 
 def _errout(e: Exception):
     print(f"{PROG}: {type(e).__name__}: {str(e)}", file=sys.stderr)
-    for note in e.__notes__:
-        print(note, file=sys.stderr)
+    if hasattr(e, "__notes__"):
+        for note in e.__notes__:
+            print(note, file=sys.stderr)
     exit(1)
 
 
