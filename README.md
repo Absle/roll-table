@@ -51,30 +51,39 @@ Currently the only available directive is the `include` directive, though this m
 
 > usage: `#!include(<file_path>)[ as <alias>]`
 
-Makes the table located at `<file_path>` available for string replacement expressions within the current table. The file path **must be relative** to the current file; file paths with no directories in them will search in the same directory as the current file. The file path must also use forward slashes as the path separator.
+Makes the table located at `<file_path>` available for string replacement expressions within the current table. The path *must be relative* to the directory of the current file; paths with no directories in them will search in the same directory as the current file. The file path must also use forward slashes (`/`) as the path separator.
 
-Included tables are assigned a name for referencing within replacement expressions. By default this name is the base file name without the file extension. So for example, `#!include(other.csv)` will receive the reference name "`other`" and can be referenced in a replacement expression like this: `${other}`. See the [string replacement section](#string-replacement-expressions) for more info.
+Each included table is assigned an alias for use in reference expressions. By default this alias is the base file name without the file extension (a.k.a. the file's "stem"). For example, `#!include(other.csv)` will receive the alias "other" and can be used in a reference expression like this: `${other}`. 
 
-You can customize this reference name by adding `as <alias>` to the end of the include line, which will change the reference name to "`<alias>`". For example, `#!include(other.csv) as another` will allow you to reference `other.csv` like this: `${another}`.
+You can customize this alias by adding the optional `... as <alias>` clause to the end of the include directive, which will change the alias to "`<alias>`". For example, `#!include(other.csv) as another` will force the tables alias to "another" and can be used in a reference expression like this: `${another}`.
 
-In the event two or more reference names are the same, the first one included is given priority, and all subsequent ones are skipped. If you have two included files with the same filename, use aliasing to ensure they have unique names.
+If more than one include directive resolves to the same alias, the first include directive is given priority, and all the others are skipped. If you need to include two different files with the same stem, use the `as` clause to avoid collision.
+
+See the [reference expressions section](#reference-expressions) for more info on how to use included tables.
 
 ## String Replacement Expressions
 
-String replacement expressions currently support the following:
+There are currently two kinds of expressions:
+
+1. [Reference expressions](#reference-expressions)
+2. [Dice-arithmetic expressions](#dice-arithmetic-expressions)
+
+With just these two kinds of expressions, string replacement expressions are able to support the following:
 
 - Reference data from a random row of another table using reference expressions
 - Reuse the same row from the previous reference expression
 - Resolve dice rolls to get random integers using dice operations
 - Use those random dice rolls to and other numbers in basic arithemetic operations.
 
-For example, after resolving all the replacement expressions in this string:
+For example, after resolving all the replacement expressions in this string,
 
-      You find a ${monster} named ${~[FirstName]} ${~[LastName]} carrying ${2d10+5} gold.
+      You find a ${encounter[Type]} named ${~[FirstName]} ${~[LastName]} carrying ${2d10+5} gold.
 
-You might end up with:
+you might end up with:
 
-      You find a goblin named Billy Bob carrying 25 gold.
+> You find a goblin named Billy Bob carrying 25 gold.
+
+Assuming you had [included](#include-directive) a table named "encounter" that at least had the fields "Type", "FirstName" and "LastName".
 
 Replacement expressions always start with `${` and end on the next found `}`. After the expression is resolved, the entire expression (including the `${` and the `}`) is replaced with the result. Replacement expressions can be embedded inside of larger strings, multiple expressions can be inside of the same string, and expressions are resolved recursively.
 
@@ -113,31 +122,30 @@ Unfortunately, currently this will result in an error at best, and undefined beh
 
 The resolver treats the first closing '`}`' it finds as the end of the expression, so it will actually attempt to resolve the expression:
 
-      `${some_table[${random_index}`
+      ${some_table[${random_index}
 
 This will result in an error and treat the remaining "`]}`" as just part of the rest of the string.
 
-### Replacement Expression Syntax
 
-#### Reference Expressions
+### Reference Expressions
 
 Reference expressions deal with references to other tables included using the [`#!include` directive](#include-directive). The result of a reference expression is always the value of a *single* field from a randomly selected row in the referenced table. By default, this field is the leftmost column of the referenced table, but this behavior can be changed using indexing.
 
 For the following examples, let's assume we have included a file like so: `#!include(other.csv)`. This means we can reference this table using the default name "`other`".
 
-##### Default Reference Expression
+#### Default Reference Expression
 
 > usage: `${other}`
 
 Rolls for a random row from `other.csv` and replaces with the value in the leftmost field.
 
-##### Indexed Reference Expression
+#### Indexed Reference Expression
 
 > usage: `${other[SomeField]}`
 
 Rolls for a random row from `other.csv` and replaces with the value of the field named `SomeField`. This allows indexing to specific fields within the row.
 
-##### Previous Reference Expression
+#### Previous Reference Expression
 
 > usage: `${~}`
 
@@ -149,7 +157,7 @@ This kind of reference expression is most useful when combined with indexing to 
 
 > usage: `The first field is ${other}, and some field of the same row is ${~[SomeField]}`
 
-#### Dice-Arithmetic Expressions
+### Dice-Arithmetic Expressions
 
 Dice-arithmetic expressions are for evaluating simple arithmetic and for generating random integers for use in that arithmetic. Any replacement expression will be treated as a dice-arithmetic expression by the resolver if the first character inside of the braces is any of these characters: `+-012345679(`.
 
@@ -157,7 +165,7 @@ It is important to note that *all* dice operations will be evaluated *before* an
 
 Although dice-arithmetic expressions are resolved as one replacement expression, dice operations and arithmetic operations happen in separate steps and so their syntax should be discussed separately.
 
-##### Dice Operations
+#### Dice Operations
 
 > usage: `${XdY}`
 
@@ -165,7 +173,7 @@ Chooses `X` random numbers between 1 and `Y`, and replaces with the sum of all t
 
 All dice expressions are always resolved before any arithmetic expressions.
 
-##### Arithmetic Operations
+#### Arithmetic Operations
 
 > usage: `${-(1 + 2 - 3 * 4 / 5 // 6 ** 7 % 8)}`
 

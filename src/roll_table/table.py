@@ -1,27 +1,25 @@
 import copy
 import csv
-from enum import Enum
 from pathlib import Path
 from random import choice
 from warnings import warn
 
 from roll_table.errors import IncludeWarning, DirectiveWarning
+from roll_table.parsing.directive import (
+    DirectiveParseError,
+    IncludeDirective,
+    KeyWord as DirKeyWord,
+    Kind as DirKind,
+    Syntax as DirSyntax,
+    parse_directive,
+)
+from roll_table.parsing.line import Syntax as LineSyntax
 
 
 class Table:
     _path: Path
     _field_names: list[str]
     _rows: list[dict]
-
-    COMMENT = "#"
-    DIRECTIVE = COMMENT + "!"
-    DIR_INCLUDE = "include"
-    OP_ALIAS = "as"
-    OP_REPLACE_OPEN = "${"
-    OP_REPLACE_CLOSE = "}"
-    OP_FIELD_OPEN = "["
-    OP_FIELD_CLOSE = "]"
-    OP_PREV_ROW = "~"
 
     def __init__(self, filepath: str):
         self._path = Path(filepath).absolute()
@@ -32,62 +30,43 @@ class Table:
         # Pre-processing directives
         namespace = {}
         line_directives = [
-            (l, d[len(self.DIRECTIVE) :].strip().strip('"').strip().strip(",").strip())
+            (
+                l + 1,
+                d.strip().strip(",").strip('"').strip(),
+            )
             for l, d in enumerate(raw_csv)
-            if d.strip('"').startswith(self.DIRECTIVE)
+            if d.strip('"').startswith(LineSyntax.DIRECTIVE.value)
         ]
-        for i, directive in line_directives:
-            line = i + 1
+        for line, directive_str in line_directives:
+            try:
+                directive = parse_directive(directive_str, self.directory)
+            except DirectiveParseError as e:
+                warn(DirectiveWarning(str(e), self._path, line))
+                continue
 
-            # Handle include directives
-            if directive.startswith(self.DIR_INCLUDE):
-                paren_open_idx = len(self.DIR_INCLUDE)
-                paren_close_idx = directive.find(")")
-                if directive[paren_open_idx] != "(" or paren_close_idx == -1:
-                    # Skip includes that don't have parens
-                    warn(
-                        IncludeWarning(
-                            "could not find open and close parens", self._path, line
-                        )
-                    )
-                    continue
-
-                # Pull out path to included file
-                arg_str = directive[paren_open_idx + 1 : paren_close_idx]
-                include_path = self.directory.joinpath(arg_str).absolute()
-                if not include_path.is_file():
-                    # Skip includes with paths to invalid or non-existent files
-                    warn(
-                        IncludeWarning(
-                            f"'{arg_str}' is not a valid file", self._path, line
-                        )
-                    )
-                    continue
-
-                rest = directive[paren_close_idx + 1 :].strip()
-                if rest.startswith(self.OP_ALIAS + " "):
-                    # Grab the word immediately after the alias operator and use as alias
-                    alias = rest.split()[1]
-                else:
-                    alias = include_path.stem
-
-                if alias in namespace:
+            if type(directive) is IncludeDirective:
+                if directive.alias in namespace:
                     # Skip includes with alias collisions
                     warn(
-                        IncludeWarning(
-                            f"alias '{alias}' has already been included",
+                        DirectiveWarning(
+                            f"alias '{directive.alias}' has already been included",
                             self._path,
                             line,
                         )
                     )
                     continue
-                namespace[alias] = include_path
+                namespace[directive.alias] = directive.path
             else:
-                # Skip invalid directives
-                warn(DirectiveWarning("found invalid directive", self._path, line))
+                warn(
+                    DirectiveWarning(
+                        f"unimplemented directive '{directive.kind.value}'",
+                        self._path,
+                        line,
+                    )
+                )
 
         # Pre-processing include replacement aliases
-        raw_table = [r for r in raw_csv if not r.startswith(self.COMMENT)]
+        raw_table = [r for r in raw_csv if not r.startswith(LineSyntax.COMMENT.value)]
 
         # Skip first line to avoid changing headers
         for i in range(1, len(raw_table)):

@@ -15,8 +15,6 @@
 
 - filtering api for `TableManager.roll` and a new `TableManager.filter`
 
-- Downgrade `ResolveError` to a warning
-
 - Breakout CLI into a separate file and clean up `roll-table/__init__.py` for use as a library
 
 - need a better name for the application
@@ -28,6 +26,11 @@
 - need away to make a distributable application for installing
     - [`pyapp`][pyapp-github] seems like the best option and seems to have some kind of [uv integration][pyapp-uv]
 
+- rework all warnings into a proper logging system rather than misusing `warnings.warn`
+    - probably also rethink using `errors.py`
+
+- refactor expression parsing and make a proper `ReplacementString` + `Expression` classes for a basic syntax tree
+
 [pyapp-github]: https://github.com/ofek/pyapp
 [pyapp-uv]: https://ofek.dev/pyapp/latest/config/installation/#uv
 
@@ -35,3 +38,4 @@
 
 - ~~dice rolling and/or math in replacements (`${1d6*10}`)~~
     - ~~update README for this feature now that it's implemented~~
+- ~~refactor directive parsing with proper syntax classes~~

@@ -2,6 +2,7 @@ from pathlib import Path
 from warnings import warn
 
 from roll_table.errors import FieldResolveWarning, ResolveError
+from roll_table.parsing.expression import ARITHMETIC_START, Syntax as ExprSyntax
 from roll_table.table import Table
 from roll_table.utils import is_number, resolve_dice_arithmetic
 
@@ -15,8 +16,8 @@ class TableManager:
     def _resolve_replacement_expression(
         self, depth, last_rolled_row: dict | None, op: str
     ) -> str:
-        start = len(Table.OP_REPLACE_OPEN)
-        end = op.find(Table.OP_FIELD_OPEN, start)
+        start = len(ExprSyntax.REPLACE_OPEN.value)
+        end = op.find(ExprSyntax.FIELD_OPEN.value, start)
         if end < 0:
             end = len(op) - 1
         table_path = op[start:end]
@@ -24,17 +25,17 @@ class TableManager:
         field = None
         if end != len(op) - 1:
             start = end + 1
-            end = op.find(Table.OP_FIELD_CLOSE, start)
+            end = op.find(ExprSyntax.FIELD_CLOSE.value, start)
             if end < 0:
                 warn(FieldResolveWarning("missing closing field bracket", depth, op))
             else:
                 field = op[start:end]
 
-        if table_path == Table.OP_PREV_ROW:
+        if table_path == ExprSyntax.PREV_REF.value:
             if last_rolled_row is None:
                 raise (
                     ResolveError(
-                        f"'{Table.OP_PREV_ROW}' must not be first replacement",
+                        f"'{ExprSyntax.PREV_REF.value}' must not be first replacement",
                         depth,
                         op,
                     )
@@ -58,7 +59,7 @@ class TableManager:
         return str(value)
 
     def _resolve_dice_arithmetic_expression(self, op: str) -> str:
-        start = len(Table.OP_REPLACE_OPEN)
+        start = len(ExprSyntax.REPLACE_OPEN.value)
         end = len(op) - 1
         expression = op[start:end]
         if is_number(expression):
@@ -80,27 +81,27 @@ class TableManager:
     def resolve(self, rep_str: str, depth_limit: int = 100) -> str:
         for i in range(1, depth_limit + 1):
             if (
-                Table.OP_REPLACE_OPEN not in rep_str
-                or Table.OP_REPLACE_CLOSE not in rep_str
+                ExprSyntax.REPLACE_OPEN.value not in rep_str
+                or ExprSyntax.REPLACE_CLOSE.value not in rep_str
             ):
                 break
 
             replace_ops: list[str] = []
             cursor = 0
             while cursor < len(rep_str):
-                start = rep_str.find(Table.OP_REPLACE_OPEN, cursor)
+                start = rep_str.find(ExprSyntax.REPLACE_OPEN.value, cursor)
                 if start < 0:
                     # No more string replacements to be found
                     break
-                cursor = start + len(Table.OP_REPLACE_OPEN)
-                end = rep_str.find(Table.OP_REPLACE_CLOSE, cursor)
-                cursor = end + len(Table.OP_REPLACE_CLOSE)
+                cursor = start + len(ExprSyntax.REPLACE_OPEN.value)
+                end = rep_str.find(ExprSyntax.REPLACE_CLOSE.value, cursor)
+                cursor = end + len(ExprSyntax.REPLACE_CLOSE.value)
                 replace_ops.append(rep_str[start : end + 1])
 
             row: dict | None = None
             replacements: list[str] = []
             for op in replace_ops:
-                if op[len(Table.OP_REPLACE_OPEN)] not in "+-012345679(":
+                if op[len(ExprSyntax.REPLACE_OPEN.value)] not in ARITHMETIC_START:
                     # The start of the op does not indicate dice or aritmetic
                     value = self._resolve_replacement_expression(i, row, op)
                 else:
