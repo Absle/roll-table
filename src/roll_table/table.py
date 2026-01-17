@@ -63,7 +63,20 @@ class Table:
                 )
 
         # Pre-processing include replacement aliases
-        raw_table = [r for r in raw_csv if not r.startswith(LineSyntax.COMMENT.value)]
+        line_rows = [
+            # Create of raw rows w/ original CSV line numbers
+            # f"{line+1}," + row if line != 0 else row
+            (i + 1, row)
+            for i, row in enumerate(raw_csv)
+            if not row.startswith(LineSyntax.COMMENT.value)
+        ]
+
+        raw_table = [
+            # Add the original CSV line number as the first element of each data line
+            # If it's the header, assign new column a magic field name
+            f"{line}," + row if i != 0 else "__line__," + row
+            for i, (line, row) in enumerate(line_rows)
+        ]
 
         # Skip first line to avoid changing headers
         for i in range(1, len(raw_table)):
