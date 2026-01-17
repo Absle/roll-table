@@ -72,9 +72,9 @@ class Table:
         ]
 
         raw_table = [
-            # Add the original CSV line number as the first element of each data line
-            # If it's the header, assign new column a magic field name
-            f"{line}," + row if i != 0 else "__line__," + row
+            # Add the index and original CSV line number as the first elements of each
+            # data line. If it's the header, assign new columns a magic field name
+            f"{i},{line}," + row if i != 0 else "__index__,__line__," + row
             for i, (line, row) in enumerate(line_rows)
         ]
 
