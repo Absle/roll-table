@@ -4,13 +4,10 @@ from pathlib import Path
 from random import choice
 from warnings import warn
 
-from roll_table.errors import IncludeWarning, DirectiveWarning
+from roll_table.errors import DirectiveWarning
 from roll_table.parsing.directive import (
     DirectiveParseError,
     IncludeDirective,
-    KeyWord as DirKeyWord,
-    Kind as DirKind,
-    Syntax as DirSyntax,
     parse_directive,
 )
 from roll_table.parsing.line import Syntax as LineSyntax
