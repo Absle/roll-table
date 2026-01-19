@@ -3,6 +3,7 @@ import warnings
 from argparse import ArgumentParser, Namespace
 
 from roll_table.errors import InvalidFieldError, RollTableWarning
+from roll_table.parsing.line import MAGIC_FIELDS
 from roll_table.table_manager import TableManager
 
 PROG = "roll-table"
@@ -56,7 +57,7 @@ def _main_impl(args: Namespace):
             raise InvalidFieldError(csv_path, invalid_fields)
         fields = args.fields
     else:
-        fields = table.field_names
+        fields = [field for field in table.field_names if field not in MAGIC_FIELDS]
     max_length = max([len(field) for field in fields])
 
     for _ in range(args.number):

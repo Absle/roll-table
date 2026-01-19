@@ -10,7 +10,7 @@ from roll_table.parsing.directive import (
     IncludeDirective,
     parse_directive,
 )
-from roll_table.parsing.line import Syntax as LineSyntax
+from roll_table.parsing.line import MagicField, Syntax as LineSyntax
 
 
 class Table:
@@ -74,7 +74,11 @@ class Table:
         raw_table = [
             # Add the index and original CSV line number as the first elements of each
             # data line. If it's the header, assign new columns a magic field name
-            f"{i},{line}," + row if i != 0 else "__index__,__line__," + row
+            (
+                row.strip() + f",{i},{line}\n"
+                if i != 0
+                else row.strip() + f",{MagicField.INDEX},{MagicField.LINE}\n"
+            )
             for i, (line, row) in enumerate(line_rows)
         ]
 
@@ -97,7 +101,7 @@ class Table:
 
     @property
     def filename(self) -> str:
-        return str(self._path.name)
+        return self._path.name
 
     @property
     def path(self) -> Path:

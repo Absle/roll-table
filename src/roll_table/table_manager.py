@@ -15,7 +15,7 @@ class TableManager:
 
     def _resolve_replacement_expression(
         self, depth, last_rolled_row: dict | None, op: str
-    ) -> str:
+    ) -> tuple[str, dict]:
         start = len(ExprSyntax.REPLACE_OPEN.value)
         end = op.find(ExprSyntax.FIELD_OPEN.value, start)
         if end < 0:
@@ -40,23 +40,24 @@ class TableManager:
                         op,
                     )
                 )
+            row = last_rolled_row
         else:
             try:
-                last_rolled_row = self.roll(table_path)
+                row = self.roll(table_path)
             except FileNotFoundError as e:
                 extra = ResolveError(f"failed to open file", depth, op)
                 e.add_note(f"{type(extra).__name__}: {str(extra)}")
                 raise
 
         if field is not None:
-            if field in last_rolled_row:
-                value = last_rolled_row[field]
+            if field in row:
+                value = row[field]
             else:
                 warn(FieldResolveWarning("field not in table", depth, op))
-                value = next(iter(last_rolled_row.values()))
+                value = next(iter(row.values()))
         else:
-            value = next(iter(last_rolled_row.values()))
-        return str(value)
+            value = next(iter(row.values()))
+        return str(value), row
 
     def _resolve_dice_arithmetic_expression(self, op: str) -> str:
         start = len(ExprSyntax.REPLACE_OPEN.value)
@@ -98,12 +99,14 @@ class TableManager:
                 cursor = end + len(ExprSyntax.REPLACE_CLOSE.value)
                 replace_ops.append(rep_str[start : end + 1])
 
-            row: dict | None = None
+            last_rolled_row: dict | None = None
             replacements: list[str] = []
             for op in replace_ops:
                 if op[len(ExprSyntax.REPLACE_OPEN.value)] not in ARITHMETIC_START:
-                    # The start of the op does not indicate dice or aritmetic
-                    value = self._resolve_replacement_expression(i, row, op)
+                    # The start of the op does not indicate dice or arithmetic
+                    value, last_rolled_row = self._resolve_replacement_expression(
+                        i, last_rolled_row, op
+                    )
                 else:
                     value = self._resolve_dice_arithmetic_expression(op)
                 replacements.append(value)
