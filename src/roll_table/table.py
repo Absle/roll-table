@@ -10,7 +10,8 @@ from roll_table.parsing.directive import (
     IncludeDirective,
     parse_directive,
 )
-from roll_table.parsing.line import MagicField, Syntax as LineSyntax
+from roll_table.parsing.expression import parse_replacement_string
+from roll_table.parsing.line import MAGIC_FIELDS, MagicField, Syntax as LineSyntax
 
 
 class Table:
@@ -18,14 +19,14 @@ class Table:
     _field_names: list[str]
     _rows: list[dict]
 
-    def __init__(self, filepath: str):
+    def __init__(self, filepath: Path):
         self._path = Path(filepath).absolute()
 
         with open(self._path) as csv_file:
             raw_csv = csv_file.readlines()
 
         # Pre-processing directives
-        namespace = {}
+        namespace: dict[str, Path] = {}
         line_directives = [
             (
                 l + 1,
@@ -82,14 +83,16 @@ class Table:
             for i, (line, row) in enumerate(line_rows)
         ]
 
-        # Skip first line to avoid changing headers
-        for i in range(1, len(raw_table)):
-            for alias, path in namespace.items():
-                raw_table[i] = raw_table[i].replace("${" + alias, "${" + str(path))
-
         dict_reader = csv.DictReader(raw_table)
         self._field_names = list(dict_reader.fieldnames)  # type: ignore
-        self._rows = list(dict_reader)
+
+        rows = list(dict_reader)
+        for row in rows:
+            for field_name in row.keys():
+                if field_name in MAGIC_FIELDS:
+                    continue
+                row[field_name] = parse_replacement_string(row[field_name], namespace)
+        self._rows = rows
 
     @property
     def directory(self) -> Path:

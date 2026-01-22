@@ -1,7 +1,7 @@
 from enum import StrEnum, auto
 from pathlib import Path
 
-from roll_table.parsing import consume, line
+from roll_table.parsing import _consume, line
 
 
 DIRECTIVE_START = line.Syntax.DIRECTIVE.value
@@ -65,9 +65,11 @@ class IncludeDirective(Directive):
         if prev_separator is not Syntax.ARG_OPEN:
             raise DirectiveParseError(f"{kind.value}: missing args")
 
-        arg, separator, remaining = consume(
+        arg, separator, remaining = _consume(
             remaining, [Syntax.ARG_CLOSE, Syntax.ARG_SEP]
         )
+        arg = arg.strip()
+
         if separator is Syntax.ARG_SEP:
             raise DirectiveParseError(
                 f"{kind.value}: too many args, accepts exactly one"
@@ -81,8 +83,9 @@ class IncludeDirective(Directive):
         if not path.is_file():
             raise DirectiveParseError(f"{kind.value}: '{arg}' is not a valid path")
 
-        empty, separator, alias = consume(remaining, [KeyWord.ALIAS])
-        if len(empty) != 0:
+        empty, separator, alias = _consume(remaining, [KeyWord.ALIAS])
+        alias = alias.strip()
+        if len(empty.strip()) != 0:
             raise DirectiveParseError(
                 f"{kind.value}: expected '{KeyWord.ALIAS.value} or end of directive, "
                 f"found '{empty}'"
@@ -97,13 +100,15 @@ def parse_directive(directive_str: str, curr_dir: Path) -> Directive:
     if directive_str.startswith(DIRECTIVE_START):
         directive_str = directive_str[len(DIRECTIVE_START) :]
 
-    name, separator, remaining = consume(
+    name, separator, remaining = _consume(
         directive_str, [Syntax.ARG_OPEN] + list(KeyWord)
     )
+    name = name.strip()
+    remaining = remaining.strip()
     try:
         kind = Kind[name.upper()]
-    except:
-        raise DirectiveParseError(f"invalid directive: '{name}'")
+    except KeyError:
+        raise DirectiveParseError(f"unknown directive: '{name}'")
 
     match kind:
         case Kind.INCLUDE:

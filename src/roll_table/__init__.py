@@ -1,9 +1,11 @@
 import sys
 import warnings
 from argparse import ArgumentParser, Namespace
+from pathlib import Path
 
 from roll_table.errors import InvalidFieldError, RollTableWarning
 from roll_table.parsing.line import MAGIC_FIELDS
+from roll_table.parsing.expression import ReplacementString
 from roll_table.table_manager import TableManager
 
 PROG = "roll-table"
@@ -47,14 +49,14 @@ def _arg_parser() -> ArgumentParser:
 
 def _main_impl(args: Namespace):
     tm = TableManager()
-    csv_path = args.path
+    csv_path = Path(args.path)
 
     table = tm.get_table(csv_path)
     if len(args.fields) > 0:
         # Verify all field names are valid
         invalid_fields = set(args.fields).difference(table.field_names)
         if len(invalid_fields) > 0:
-            raise InvalidFieldError(csv_path, invalid_fields)
+            raise InvalidFieldError(str(csv_path), invalid_fields)
         fields = args.fields
     else:
         fields = [field for field in table.field_names if field not in MAGIC_FIELDS]
@@ -64,7 +66,7 @@ def _main_impl(args: Namespace):
         row = tm.roll(csv_path)
         for field in fields:
             value = row[field]
-            if type(value) is str:
+            if type(value) is ReplacementString:
                 row[field] = tm.resolve(value)
 
             if len(fields) > 1:

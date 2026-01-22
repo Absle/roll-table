@@ -20,7 +20,7 @@ Dangerous Animals,"Ag,Ga",${1d6*5},15000,Dangerous,${common_industrial}
 Luxury Consumables,"Ag,Ga,Wa",${1d6*10},20000,Troublesome,${common_industrial}
 Luxury Goods,Hi,${1d6},20000,Safe,${common_industrial}
 Medical Supplies,"Ht,Hi",${1d6*5},50000,Safe,${common_industrial}
-Industrial Chemicals,"De,Fl Ic,Wa",${1d6*10},10000,Dangerous,${common_industrial}
+Industrial Chemicals,"De,Fl,Ic,Wa",${1d6*10},10000,Dangerous,${common_industrial}
 Pharmaceuticals,"As,De,Hi,Wa",${1d6},100000,Troublesome,${common_industrial}
 Polymers,In,${1d6*10},7000,Safe,${common_industrial}
 Precious Metals,"As,De,Ic,Fl",${1d6},50000,Safe,${common_industrial}

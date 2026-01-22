@@ -1,17 +1,9 @@
-import ast
 import random
 import re
 from typing import Any
 
-from roll_table.errors import UnsafeExpressionError
 
 DICE_RE = re.compile(r"([0-9]+)d([0-9]+)")
-ARITHMETIC_CHARS = "0123456789()%*/+-"
-
-LEGAL_OP_KINDS = [ast.BinOp, ast.UnaryOp, ast.Constant]
-LEGAL_BINARY_OPS = [ast.Add, ast.Sub, ast.Mult, ast.Div, ast.FloorDiv, ast.Mod, ast.Pow]
-LEGAL_UNARY_OPS = [ast.UAdd, ast.USub]
-LEGAL_AST_NODES = LEGAL_OP_KINDS + LEGAL_BINARY_OPS + LEGAL_UNARY_OPS
 
 
 def dice_range(num_dice: int, num_sides: int) -> range:
@@ -24,73 +16,6 @@ def roll_dice(num_dice: int, num_sides: int) -> int:
     if num_dice <= 0 or num_sides <= 0:
         return 0
     return sum([random.randint(1, num_sides) for _ in range(num_dice)])
-
-
-def _safe_arithmetic_eval(expression: str) -> int | float:
-    no_whitespace_expr = "".join(expression.split())
-    if not all([c in ARITHMETIC_CHARS for c in no_whitespace_expr]):
-        raise UnsafeExpressionError(
-            "found non-math character in expression", expression
-        )
-
-    tree = ast.parse(expression, mode="eval")
-    # print(ast.dump(tree, indent=2))
-
-    # Walk through the AST and raise an exception if any illegal ops are found
-    for i, node in enumerate(ast.walk(tree)):
-        if type(node) is ast.Expression:
-            if i == 0 and type(node.body) in LEGAL_AST_NODES:
-                # Only an expression that is the first node in the tree and contains a
-                # legal AST node in its body is allowed
-                continue
-            else:
-                raise UnsafeExpressionError(
-                    (
-                        f"at tree index {i}: found invalid Expression node: body type "
-                        f"{type(node.body).__name__}"
-                    ),
-                    expression,
-                )
-        elif type(node) in LEGAL_AST_NODES:
-            continue
-        else:
-            raise UnsafeExpressionError(
-                f"at tree index {i}: found invalid node type: {type(node).__name__}",
-                expression,
-            )
-    return eval(
-        compile(tree, "<_safe_arithmetic_eval>", "eval"),
-        {"__builtins__": {}},
-    )
-
-
-def resolve_dice_arithmetic(expression: str) -> int | float:
-    pure_arithmetic = expression
-    for num_dice, num_sides in DICE_RE.findall(pure_arithmetic):
-        roll = roll_dice(int(num_dice), int(num_sides))
-        to_replace = num_dice + "d" + num_sides
-        pure_arithmetic = pure_arithmetic.replace(to_replace, str(roll), 1)
-
-    # An expression just being a single dice roll is a common case
-    # Try to return early and skip making an AST if we can
-    try:
-        return int(pure_arithmetic)
-    except:
-        pass
-
-    try:
-        return _safe_arithmetic_eval(pure_arithmetic)
-    except UnsafeExpressionError as e:
-        e.add_note(f"original expression: {expression}")
-        raise
-
-
-def is_number(s: str) -> bool:
-    try:
-        float(s)
-        return True
-    except:
-        return False
 
 
 def histogram_str(
@@ -161,6 +86,8 @@ def histogram_str(
 
 # TODO: remove
 if __name__ == "__main__":
+    from roll_table.parsing.expression import DiceArithExpr
+
     # Should print -30.0
     # print(resolve_dice_arithmetic("-(1 + 2 - 3 * 4 / 5 ** 6 // 7) - +(8 + 9 + 10)"))
 
@@ -175,8 +102,9 @@ if __name__ == "__main__":
 
     n = 100_000
     histo: dict[int, int] = {}
+    expr = DiceArithExpr("10 * (2d6 + 3d10 + 1d20 + 5) - 4")
     for _ in range(n):
-        result = int(resolve_dice_arithmetic(f"10 * (2d6 + 3d10 + 1d20 + 5) - 4"))
+        result = int(expr._resolve())
         if result in histo:
             histo[result] += 1
         else:

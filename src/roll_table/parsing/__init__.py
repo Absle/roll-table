@@ -2,7 +2,7 @@ from enum import StrEnum
 from typing import Sequence
 
 
-def consume(
+def _consume(
     string: str, separators: Sequence[StrEnum]
 ) -> tuple[str, StrEnum | None, str]:
     """Partition `string` at the first found separator in `separators`.
@@ -15,5 +15,5 @@ def consume(
     for separator in separators:
         left, sep, right = string.partition(separator.value)
         if len(sep) > 0:
-            return left.strip(), separator, right.strip()
+            return left, separator, right
     return string, None, ""
