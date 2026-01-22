@@ -30,6 +30,9 @@
 - rework all warnings into a proper logging system rather than misusing `warnings.warn`
     - probably also rethink using `errors.py`
 
+- add a `--histogram` option to CLI
+    - print a histogram for each field, tracking its occurences
+
 [pyapp-github]: https://github.com/ofek/pyapp
 [pyapp-uv]: https://ofek.dev/pyapp/latest/config/installation/#uv
 
