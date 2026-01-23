@@ -6,7 +6,7 @@
     "configurations": [
         {
             // Debug the currently selected Python file
-            "name": "PyDebug: Current File",
+            "name": "debugpy: Current File",
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
@@ -14,12 +14,14 @@
         },
         {
             // Debug the roll-table package with the current file as the target
-            "name": "PyDebug: roll-table",
+            "name": "debugpy: roll-table ${file}",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/src/roll_table/__init__.py",
             "console": "integratedTerminal",
-            "args": [ "${file}" ]
+            "args": [
+                "${file}"
+            ]
         }
     ]
 }
