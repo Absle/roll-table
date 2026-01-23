@@ -232,6 +232,17 @@ class ReplacementString:
         self._original_elements = elements
         self._resolved_elements = None
 
+    def __repr__(self) -> str:
+        typename = type(self).__name__
+        content = ", ".join([repr(elem) for elem in self._original_elements])
+        return f"{typename}[{content}]"
+
+    def __str__(self) -> str:
+        if self._resolved_elements is not None:
+            return "".join([str(elem) for elem in self._resolved_elements])
+        else:
+            return "".join([str(elem) for elem in self._original_elements])
+
     @staticmethod
     def _parse(raw_str: str, namespace: dict[str, Path]) -> "ReplacementString | str":
         orig_str = raw_str
