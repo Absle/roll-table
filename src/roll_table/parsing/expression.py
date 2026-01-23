@@ -1,10 +1,11 @@
 import ast
+import re
 from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from roll_table.parsing import _consume
-from roll_table.utils import DICE_RE, roll_dice
+from roll_table.utils import roll_dice
 
 if TYPE_CHECKING:
     # Have to do this to avoid circular import during an actual run
@@ -12,6 +13,7 @@ if TYPE_CHECKING:
 
 ARITH_CHARS = "0123456789()%*/+-"
 ARITH_STARTERS = "+-0123456789("
+DICE_RE = re.compile(r"([0-9]+)d([0-9]+)")
 
 LEGAL_OP_KINDS = [ast.BinOp, ast.UnaryOp, ast.Constant]
 LEGAL_BINARY_OPS = [ast.Add, ast.Sub, ast.Mult, ast.Div, ast.FloorDiv, ast.Mod, ast.Pow]

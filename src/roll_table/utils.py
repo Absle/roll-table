@@ -1,9 +1,5 @@
 import random
-import re
 from typing import Any
-
-
-DICE_RE = re.compile(r"([0-9]+)d([0-9]+)")
 
 
 def dice_range(num_dice: int, num_sides: int) -> range:
