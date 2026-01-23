@@ -5,7 +5,6 @@ from pathlib import Path
 
 from roll_table.errors import InvalidFieldError, RollTableWarning
 from roll_table.parsing.line import MAGIC_FIELDS
-from roll_table.parsing.expression import ReplacementString
 from roll_table.table_manager import TableManager
 
 PROG = "roll-table"
@@ -63,12 +62,8 @@ def _main_impl(args: Namespace):
     max_length = max([len(field) for field in fields])
 
     for _ in range(args.number):
-        row = tm.roll(csv_path)
+        row = tm.roll_resolve(csv_path)
         for field in fields:
-            value = row[field]
-            if type(value) is ReplacementString:
-                row[field] = tm.resolve(value)
-
             if len(fields) > 1:
                 print(f"{field: >{max_length}}: {row[field]}")
             else:

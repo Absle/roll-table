@@ -10,14 +10,14 @@ from roll_table.parsing.directive import (
     IncludeDirective,
     parse_directive,
 )
-from roll_table.parsing.expression import parse_replacement_string
+from roll_table.parsing.expression import parse_replacement_string, ReplacementString
 from roll_table.parsing.line import MAGIC_FIELDS, MagicField, Syntax as LineSyntax
 
 
 class Table:
     _path: Path
     _field_names: list[str]
-    _rows: list[dict]
+    _rows: list[dict[str, str | ReplacementString]]
 
     def __init__(self, filepath: Path):
         self._path = Path(filepath).absolute()
@@ -110,7 +110,7 @@ class Table:
     def path(self) -> Path:
         return copy.deepcopy(self._path)
 
-    def roll(self) -> dict:
+    def roll(self) -> dict[str, str | ReplacementString]:
         return copy.deepcopy(choice(self._rows))
 
     def to_json(self) -> str:
