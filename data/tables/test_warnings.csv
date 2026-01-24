@@ -6,7 +6,14 @@
 #!include(does_not_exist.csv)
 #!include(trade_goods.csv) should have ended
 #!bad_directive
-#!include(trade_goods.csv) as singular
-#!include(trade_goods_sentence.csv) as singular
-ColumnA
-1A
+#!include(trade_goods.csv)
+#!include(trade_goods_sentence.csv) as trade_goods
+WarningCauser,ExpectedProblem
+${},empty expression
+${~} ${trade_goods[Example]},prev reference first
+${trade_goods[DoesNotExist]},non-existent field
+${trade_goods,incomplete expression
+${1 + bad_code()},unsafe arithmetic
+${[Example]},empty alias
+${does_not_exist[Example]},non-existent alias
+${trade_goods[Example},unclosed field

@@ -3,7 +3,10 @@ import os
 import random
 from logging import Logger
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from roll_table.parsing.expression import Expression
 
 
 PROG = "roll-table"
@@ -33,6 +36,21 @@ def log_parse_warning(
         if len(args) > 0:
             msg = msg % args  # type: ignore
         logger.warning("%s:%d: %s, skipping...", csv_path, line, msg)
+
+
+def log_resolve_warning(logger: Logger, expr: "Expression", msg: str, *args):
+
+    if logger.getEffectiveLevel() <= logging.WARNING:
+        if len(args) > 0:
+            msg = msg % args  # type: ignore
+
+        logger.warning(
+            "%s:%d: %s: %s, expression will not be resolved",
+            expr.csv_path,
+            expr.line,
+            expr.raw_expr,
+            msg,
+        )
 
 
 def dice_range(num_dice: int, num_sides: int) -> range:
@@ -131,7 +149,7 @@ if __name__ == "__main__":
 
     n = 100_000
     histo: dict[int, int] = {}
-    expr = DiceArithExpr("10 * (2d6 + 3d10 + 1d20 + 5) - 4")
+    expr = DiceArithExpr("10 * (2d6 + 3d10 + 1d20 + 5) - 4", Path("__main__.csv"), 0)
     for _ in range(n):
         result = int(expr._resolve())
         if result in histo:

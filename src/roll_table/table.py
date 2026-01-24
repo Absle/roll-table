@@ -94,7 +94,10 @@ class Table:
             for field_name in row.keys():
                 if field_name in MAGIC_FIELDS:
                     continue
-                row[field_name] = parse_replacement_string(row[field_name], namespace)
+                line = int(row[MagicField.LINE])
+                row[field_name] = parse_replacement_string(
+                    row[field_name], namespace, self._path, line
+                )
         self._rows = rows
 
     @property
