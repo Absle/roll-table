@@ -1,10 +1,9 @@
 import copy
 import csv
+import logging
 from pathlib import Path
 from random import choice
-from warnings import warn
 
-from roll_table.errors import DirectiveWarning
 from roll_table.parsing.directive import (
     DirectiveParseError,
     IncludeDirective,
@@ -12,6 +11,10 @@ from roll_table.parsing.directive import (
 )
 from roll_table.parsing.expression import parse_replacement_string, ReplacementString
 from roll_table.parsing.line import MAGIC_FIELDS, MagicField, Syntax as LineSyntax
+from roll_table.utils import log_parse_warning
+
+
+_logger = logging.getLogger(__name__)
 
 
 class Table:
@@ -39,28 +42,28 @@ class Table:
             try:
                 directive = parse_directive(directive_str, self.directory)
             except DirectiveParseError as e:
-                warn(DirectiveWarning(str(e), self._path, line))
+                log_parse_warning(_logger, self._path, line, e)
                 continue
 
             if type(directive) is IncludeDirective:
                 if directive.alias in namespace:
                     # Skip includes with alias collisions
-                    warn(
-                        DirectiveWarning(
-                            f"alias '{directive.alias}' has already been included",
-                            self._path,
-                            line,
-                        )
+                    log_parse_warning(
+                        _logger,
+                        self._path,
+                        line,
+                        "alias '%s' has already been included",
+                        directive.alias,
                     )
                     continue
                 namespace[directive.alias] = directive.path
             else:
-                warn(
-                    DirectiveWarning(
-                        f"unimplemented directive '{directive.kind.value}'",
-                        self._path,
-                        line,
-                    )
+                log_parse_warning(
+                    _logger,
+                    self._path,
+                    line,
+                    "unimplemented directive '%s'",
+                    directive.kind.value,
                 )
 
         # Pre-processing include replacement aliases

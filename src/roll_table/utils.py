@@ -1,5 +1,38 @@
+import logging
+import os
 import random
+from logging import Logger
+from pathlib import Path
 from typing import Any
+
+
+PROG = "roll-table"
+SYS_LOG_HOME = os.environ.get("XDG_STATE_HOME", default=None)
+if SYS_LOG_HOME is None:
+    try:
+        import platform
+
+        if platform.system() == "Windows":
+            SYS_LOG_HOME = os.environ.get("LocalAppData", default=None)
+            if SYS_LOG_HOME is None:
+                SYS_LOG_HOME = str(Path.home().joinpath("AppData/Local").absolute())
+        else:
+            SYS_LOG_HOME = str(Path.home().joinpath(".local/state").absolute())
+    except:
+        SYS_LOG_HOME = None
+
+
+def log_parse_warning(
+    logger: Logger, csv_path: Path, line: int, msg: str | Exception, *args
+):
+
+    if logger.getEffectiveLevel() <= logging.WARNING:
+        if issubclass(type(msg), Exception):
+            msg = str(msg)
+
+        if len(args) > 0:
+            msg = msg % args  # type: ignore
+        logger.warning("%s:%d: %s, skipping...", csv_path, line, msg)
 
 
 def dice_range(num_dice: int, num_sides: int) -> range:

@@ -66,7 +66,7 @@ class IncludeDirective(Directive):
             raise DirectiveParseError(f"{kind.value}: missing args")
 
         arg, separator, remaining = _consume(
-            remaining, [Syntax.ARG_CLOSE, Syntax.ARG_SEP]
+            remaining, [Syntax.ARG_SEP, Syntax.ARG_CLOSE]
         )
         arg = arg.strip()
 
@@ -87,7 +87,7 @@ class IncludeDirective(Directive):
         alias = alias.strip()
         if len(empty.strip()) != 0:
             raise DirectiveParseError(
-                f"{kind.value}: expected '{KeyWord.ALIAS.value} or end of directive, "
+                f"{kind.value}: expected '{KeyWord.ALIAS.value}' or end of directive, "
                 f"found '{empty}'"
             )
         elif separator is None:
@@ -108,7 +108,7 @@ def parse_directive(directive_str: str, curr_dir: Path) -> Directive:
     try:
         kind = Kind[name.upper()]
     except KeyError:
-        raise DirectiveParseError(f"unknown directive: '{name}'")
+        raise DirectiveParseError(f"unknown directive '{name}'")
 
     match kind:
         case Kind.INCLUDE:

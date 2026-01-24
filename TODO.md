@@ -27,8 +27,11 @@
 - need away to make a distributable application for installing
     - [`pyapp`][pyapp-github] seems like the best option and seems to have some kind of [uv integration][pyapp-uv]
 
-- rework all warnings into a proper logging system rather than misusing `warnings.warn`
-    - probably also rethink using `errors.py`
+- ~~rework all warnings into a proper logging system rather than misusing `warnings.warn`~~
+    - ~~probably also rethink using `errors.py` [removed it]~~
+    - write new warnings for expression parsing and any other missing areas
+    - add CLI option for changing log level
+    - add CLI option for cleanup?
 
 - add a `--histogram` option to CLI
     - print a histogram for each field, tracking its occurences

@@ -1,0 +1,12 @@
+# attempts to cause every possible warning
+#!include(trade_goods.csv) as 1234
+#!include
+#!include(trade_goods.csv, another.csv)
+#!include(trade_goods.csv
+#!include(does_not_exist.csv)
+#!include(trade_goods.csv) should have ended
+#!bad_directive
+#!include(trade_goods.csv) as singular
+#!include(trade_goods_sentence.csv) as singular
+ColumnA
+1A

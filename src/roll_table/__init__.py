@@ -1,29 +1,104 @@
-import sys
-import warnings
+import datetime
+import logging
+import re
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
-from roll_table.errors import InvalidFieldError, RollTableWarning
 from roll_table.parsing.line import MAGIC_FIELDS
 from roll_table.table_manager import TableManager
-
-PROG = "roll-table"
-
-
-def _errout(e: Exception):
-    print(f"{PROG}: {type(e).__name__}: {str(e)}", file=sys.stderr)
-    if hasattr(e, "__notes__"):
-        for note in e.__notes__:
-            print(note, file=sys.stderr)
-    exit(1)
+from roll_table.utils import PROG, SYS_LOG_HOME
 
 
-def _show_warning(message, category, filename, lineno, file=None, line=None):
-    if issubclass(category, RollTableWarning):
-        s = f"{category.__name__}: {message}"
-    else:
-        s = f"{filename}:{lineno}: {category.__name__}: {message}"
-    print(s, file=sys.stderr)
+class InvalidFieldError(Exception):
+    def __init__(self, csv_path: str, invalid_fields: set):
+        invalid_str = ", ".join(invalid_fields)
+        super().__init__(
+            f"{csv_path} does not have the following fields: {invalid_str}"
+        )
+
+
+def _init_cli_logging(console_level=logging.WARNING, cleanup: bool = False):
+    console_format = "%(levelname)s: %(message)s"
+    log_file_format = "%(asctime)s.%(msecs)03d\t%(levelname)-8s\t%(message)s"
+
+    if SYS_LOG_HOME is None:
+        # User application logging directory could not be determined for this system
+        # Only logging to console
+        logging.basicConfig(level=console_level, format=console_format)
+        logging.warning(
+            "user application log directory could not be determined, logging to console "
+            "only"
+        )
+        return
+
+    # Ensure log directories exist and attempt to create them if not
+    log_home = Path(SYS_LOG_HOME).joinpath(PROG + "/logs")
+    try:
+        log_home.mkdir(parents=True, exist_ok=True)
+    except:
+        logging.basicConfig(level=console_level, format=console_format)
+        logging.warning(
+            "failed to find or create application log directory '%s', logging to console "
+            "only",
+            str(log_home),
+        )
+        return
+
+    # Ensure log file exists and we have write permissions
+    cli_log_file_fmt = "{}" + f"_{PROG}_cli.log"
+    today = datetime.date.today().isoformat()
+    log_path = log_home.joinpath(cli_log_file_fmt.format(today)).absolute()
+    try:
+        log_path.touch(exist_ok=True)
+        _ = open(log_path, "a")
+    except:
+        logging.basicConfig(level=console_level, format=console_format)
+        logging.warning(
+            "failed to create or write to log file '%s', logging to console only",
+            str(log_path),
+        )
+        return
+
+    # Set up logging to file
+    datetime.datetime.now().isoformat
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format=log_file_format,
+        datefmt="%Y-%m-%d %H:%M:%S",
+        filename=str(log_path),
+        filemode="a",
+    )
+
+    # Log to both log file and console, but in different formats
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(console_level)
+    console_handler.setFormatter(logging.Formatter(console_format))
+    logging.getLogger().addHandler(console_handler)
+
+    logging.debug("successfully logging at '%s'", str(log_path))
+    if not cleanup:
+        return
+
+    # Clean up old log files
+    log_age_limit = 90  # days
+    regex = cli_log_file_fmt.format(r"\d\d\d\d-\d\d-\d\d")
+    cli_log_re = re.compile(regex)
+    for file_path in log_home.iterdir():
+        file_name = file_path.name
+        if file_path.is_file() and cli_log_re.fullmatch(file_name) is not None:
+            date_str = file_name[0 : len(today)]
+            log_date = datetime.date.fromisoformat(date_str)
+            delta = datetime.date.today() - log_date
+            if delta.days > log_age_limit:
+                logging.info(
+                    "found log '%s' older than %d days, deleting",
+                    file_name,
+                    log_age_limit,
+                )
+                try:
+                    file_path.unlink()
+                except:
+                    logging.warning("failed to delete old log '%s'", file_name)
 
 
 def _arg_parser() -> ArgumentParser:
@@ -75,12 +150,16 @@ def _main_impl(args: Namespace):
 
 
 def main():
-    warnings.showwarning = _show_warning
     args = _arg_parser().parse_args()
+    _init_cli_logging(cleanup=True)
+    logger = logging.getLogger(__name__)
     try:
         _main_impl(args)
     except Exception as e:
-        _errout(e)
+        logger.critical("%s: %s: %s", PROG, type(e).__name__, str(e))
+        if hasattr(e, "__notes__"):
+            for note in e.__notes__:
+                logger.critical(note)
     exit(0)
 
 
