@@ -1,12 +1,7 @@
-import logging
 import os
 import random
-from logging import Logger
 from pathlib import Path
-from typing import Any, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from roll_table.parsing.expression import Expression
+from typing import Any
 
 
 PROG = "roll-table"
@@ -23,34 +18,6 @@ if SYS_LOG_HOME is None:
             SYS_LOG_HOME = str(Path.home().joinpath(".local/state").absolute())
     except:
         SYS_LOG_HOME = None
-
-
-def log_parse_warning(
-    logger: Logger, csv_path: Path, line: int, msg: str | Exception, *args
-):
-
-    if logger.getEffectiveLevel() <= logging.WARNING:
-        if issubclass(type(msg), Exception):
-            msg = str(msg)
-
-        if len(args) > 0:
-            msg = msg % args  # type: ignore
-        logger.warning("%s:%d: %s, skipping...", csv_path, line, msg)
-
-
-def log_resolve_warning(logger: Logger, expr: "Expression", msg: str, *args):
-
-    if logger.getEffectiveLevel() <= logging.WARNING:
-        if len(args) > 0:
-            msg = msg % args  # type: ignore
-
-        logger.warning(
-            "%s:%d: %s: %s, expression will not be resolved",
-            expr.csv_path,
-            expr.line,
-            expr.raw_expr,
-            msg,
-        )
 
 
 def dice_range(num_dice: int, num_sides: int) -> range:

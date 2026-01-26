@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 from random import choice
 
+from roll_table.parsing import directive_parse_warning
 from roll_table.parsing.directive import (
     DirectiveParseError,
     IncludeDirective,
@@ -11,7 +12,6 @@ from roll_table.parsing.directive import (
 )
 from roll_table.parsing.expression import parse_replacement_string, ReplacementString
 from roll_table.parsing.line import MAGIC_FIELDS, MagicField, Syntax as LineSyntax
-from roll_table.utils import log_parse_warning
 
 
 _logger = logging.getLogger(__name__)
@@ -42,26 +42,28 @@ class Table:
             try:
                 directive = parse_directive(directive_str, self.directory)
             except DirectiveParseError as e:
-                log_parse_warning(_logger, self._path, line, e)
+                directive_parse_warning(_logger, self._path, line, directive_str, e)
                 continue
 
             if type(directive) is IncludeDirective:
                 if directive.alias in namespace:
                     # Skip includes with alias collisions
-                    log_parse_warning(
+                    directive_parse_warning(
                         _logger,
                         self._path,
                         line,
+                        directive_str,
                         "alias '%s' has already been included",
                         directive.alias,
                     )
                     continue
                 namespace[directive.alias] = directive.path
             else:
-                log_parse_warning(
+                directive_parse_warning(
                     _logger,
                     self._path,
                     line,
+                    directive_str,
                     "unimplemented directive '%s'",
                     directive.kind.value,
                 )

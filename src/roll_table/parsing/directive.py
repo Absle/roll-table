@@ -50,7 +50,7 @@ class IncludeDirective(Directive):
             self.alias = alias
 
         if not IncludeDirective._is_valid_alias(self.alias):
-            raise DirectiveParseError(f"{kind.value}: invalid alias '{self.alias}'")
+            raise DirectiveParseError(f"invalid alias '{self.alias}'")
 
     @staticmethod
     def _is_valid_alias(alias: str) -> bool:
@@ -63,7 +63,7 @@ class IncludeDirective(Directive):
         kind = Kind.INCLUDE
 
         if prev_separator is not Syntax.ARG_OPEN:
-            raise DirectiveParseError(f"{kind.value}: missing args")
+            raise DirectiveParseError("missing args")
 
         arg, separator, remaining = _consume(
             remaining, [Syntax.ARG_SEP, Syntax.ARG_CLOSE]
@@ -71,24 +71,22 @@ class IncludeDirective(Directive):
         arg = arg.strip()
 
         if separator is Syntax.ARG_SEP:
-            raise DirectiveParseError(
-                f"{kind.value}: too many args, accepts exactly one"
-            )
+            raise DirectiveParseError("too many args, accepts exactly one")
         elif separator is not Syntax.ARG_CLOSE:
             raise DirectiveParseError(
-                f"{kind.value}: unclosed args, missing '{Syntax.ARG_CLOSE.value}'"
+                f"unclosed args, missing '{Syntax.ARG_CLOSE.value}'"
             )
 
         path = curr_dir.joinpath(arg).absolute()
         if not path.is_file():
-            raise DirectiveParseError(f"{kind.value}: '{arg}' is not a valid path")
+            raise DirectiveParseError(f"'{arg}' is not a valid path")
 
         empty, separator, alias = _consume(remaining, [KeyWord.ALIAS])
         alias = alias.strip()
-        if len(empty.strip()) != 0:
+        empty = empty.strip()
+        if len(empty) != 0:
             raise DirectiveParseError(
-                f"{kind.value}: expected '{KeyWord.ALIAS.value}' or end of directive, "
-                f"found '{empty}'"
+                f"expected '{KeyWord.ALIAS.value}' or end of directive, found '{empty}'"
             )
         elif separator is None:
             return IncludeDirective(path)

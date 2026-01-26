@@ -8,12 +8,13 @@
 #!bad_directive
 #!include(trade_goods.csv)
 #!include(trade_goods_sentence.csv) as trade_goods
-WarningCauser,ExpectedProblem
-${},empty expression
-${~} ${trade_goods[Example]},prev reference first
-${trade_goods[DoesNotExist]},non-existent field
-${trade_goods,incomplete expression
-${1 + bad_code()},unsafe arithmetic
-${[Example]},empty alias
-${does_not_exist[Example]},non-existent alias
-${trade_goods[Example},unclosed field
+WarningCauser,DiscoveryStage,ExpectedProblem
+${},Parsing,empty expression
+${~} ${trade_goods[Example]},Resolving,prev reference first
+${trade_goods[DoesNotExist]},Resolving,non-existent field
+${trade_goods,Parsing,incomplete expression
+${1 + bad_code()},Parsing,unsafe arithmetic
+${[Example]},Parsing,empty alias
+${does_not_exist[Example]},Parsing,non-existent alias
+${trade_goods[Example},Parsing,unclosed field
+all in one: empty ${} prev first ${~} field dne ${trade_goods[DoesNotExist]} actually works `${trade_goods}` prev works `${~[Tons]}` bad arith ${1 + bad_code()} empty alias ${[Example]} working nested `${trade_goods[Example]}` table dne ${does_not_exist[Anything]} unclosed field ${trade_goods[Example} incomplete ${trade_goods,Both,all problems at once lol

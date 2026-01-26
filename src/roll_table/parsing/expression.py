@@ -5,8 +5,12 @@ from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from roll_table.parsing import _consume
-from roll_table.utils import log_parse_warning, log_resolve_warning, roll_dice
+from roll_table.parsing import (
+    _consume,
+    expression_parse_warning,
+    expression_resolve_warning,
+)
+from roll_table.utils import roll_dice
 
 
 _logger = logging.getLogger(__name__)
@@ -27,10 +31,8 @@ LEGAL_AST_NODES = LEGAL_OP_KINDS + LEGAL_BINARY_OPS + LEGAL_UNARY_OPS
 
 
 class ExpressionParseError(Exception):
-    def __init__(self, expr: str, message: str):
-        open = Syntax.REPLACE_OPEN.value
-        close = Syntax.REPLACE_CLOSE.value
-        super().__init__(f"while parsing {open}{expr}{close}: {message}")
+    def __init__(self, message: str):
+        super().__init__(message)
 
 
 class Syntax(StrEnum):
@@ -90,19 +92,14 @@ class Expression:
     @staticmethod
     def _parse(
         raw_expr: str, namespace: dict[str, Path], csv_path: Path, line: int
-    ) -> "Expression | str":
+    ) -> "Expression":
         if len(raw_expr) == 0:
-            log_parse_warning(_logger, csv_path, line, "found an empty expression")
-            return Syntax.REPLACE_OPEN.value + raw_expr + Syntax.REPLACE_CLOSE.value
+            raise ExpressionParseError("empty expressions are not allowed")
 
-        try:
-            if raw_expr[0] in ARITH_STARTERS:
-                return DiceArithExpr(raw_expr, csv_path, line)
-            else:
-                return RefExpr(raw_expr, namespace, csv_path, line)
-        except ExpressionParseError as e:
-            log_parse_warning(_logger, csv_path, line, e)
-            return Syntax.REPLACE_OPEN.value + raw_expr + Syntax.REPLACE_CLOSE.value
+        if raw_expr[0] in ARITH_STARTERS:
+            return DiceArithExpr(raw_expr, csv_path, line)
+        else:
+            return RefExpr(raw_expr, namespace, csv_path, line)
 
 
 class DiceArithExpr(Expression):
@@ -110,7 +107,7 @@ class DiceArithExpr(Expression):
         super().__init__(raw_expr, csv_path, line)
         safe, reason = DiceArithExpr._is_safe_and_valid(raw_expr)
         if not safe:
-            raise ExpressionParseError(self._raw_expr, reason)
+            raise ExpressionParseError(reason)
 
     @staticmethod
     def _is_safe_and_valid(raw_expr: str) -> tuple[bool, str]:
@@ -122,7 +119,7 @@ class DiceArithExpr(Expression):
         try:
             _ = int(pure_arithmetic)
             return True, ""
-        except:
+        except ValueError:
             pass
 
         no_ws = "".join(pure_arithmetic.split())
@@ -191,11 +188,9 @@ class RefExpr(Expression):
         alias.strip()
         raw_expr.strip()
         if len(alias) == 0:
-            raise ExpressionParseError(self._raw_expr, "empty aliases are not allowed")
+            raise ExpressionParseError("empty aliases are not allowed")
         elif alias not in namespace and alias != Syntax.PREV_REF.value:
-            raise ExpressionParseError(
-                self._raw_expr, f"could not resolve alias '{alias}'"
-            )
+            raise ExpressionParseError(f"could not resolve alias '{alias}'")
 
         self._alias = alias
         if alias == Syntax.PREV_REF.value:
@@ -203,11 +198,13 @@ class RefExpr(Expression):
         else:
             self._path = namespace[alias]
             if not self._path.is_file():
-                msg = (
+                # Since include directives already check if the file exists, this should
+                # be unreachable unless the file is deleted between when the include is
+                # processed and the expression is parsed
+                raise ExpressionParseError(
                     f"alias '{alias}' resolved to path '{self._path}', but that path is "
                     "not a valid file"
                 )
-                raise ExpressionParseError(self._raw_expr, msg)
 
         if separator is None:
             self._field_name = None
@@ -215,8 +212,9 @@ class RefExpr(Expression):
             field_name, separator, raw_expr = _consume(raw_expr, [Syntax.FIELD_CLOSE])
             field_name.strip()
             if separator is None:
-                msg = f"unclosed field, expected '{Syntax.FIELD_CLOSE}'"
-                raise ExpressionParseError(self._raw_expr, msg)
+                raise ExpressionParseError(
+                    f"unclosed field, expected '{Syntax.FIELD_CLOSE}'"
+                )
             else:
                 self._field_name = field_name
 
@@ -225,7 +223,7 @@ class RefExpr(Expression):
     ) -> tuple["ReplacementString | str", dict | None]:
         if self._alias == Syntax.PREV_REF.value:
             if prev_roll is None:
-                log_resolve_warning(
+                expression_resolve_warning(
                     _logger,
                     self,
                     "reference expression with '%s' can not be the first reference",
@@ -241,10 +239,10 @@ class RefExpr(Expression):
             if self._field_name in row:
                 value = row[self._field_name]
             else:
-                log_resolve_warning(
+                expression_resolve_warning(
                     _logger,
                     self,
-                    "field %s does not exist in %s",
+                    "field '%s' does not exist in '%s'",
                     self._field_name,
                     self._alias,
                 )
@@ -296,19 +294,32 @@ class ReplacementString:
             if separator is None:
                 # Reached end of raw_str without closing the expression
                 # Treat it as a plain string and break early
-                log_parse_warning(
+                expression_parse_warning(
                     _logger,
                     csv_path,
                     line,
+                    Syntax.REPLACE_OPEN.value + raw_expr,
                     "incomplete expression, missing '%s'",
                     Syntax.REPLACE_CLOSE.value,
                 )
-                elements.append(raw_expr)
+                elements.append(Syntax.REPLACE_OPEN.value + raw_expr)
                 break
             raw_expr = raw_expr.strip()
 
-            expression = Expression._parse(raw_expr, namespace, csv_path, line)
-            elements.append(expression)
+            try:
+                elements.append(Expression._parse(raw_expr, namespace, csv_path, line))
+            except ExpressionParseError as e:
+                orig_expr = (
+                    Syntax.REPLACE_OPEN.value + raw_expr + Syntax.REPLACE_CLOSE.value
+                )
+                expression_parse_warning(
+                    _logger,
+                    csv_path,
+                    line,
+                    orig_expr,
+                    e,
+                )
+                elements.append(orig_expr)
 
         if len(elements) > 0 and any(
             [issubclass(type(elem), Expression) for elem in elements]
@@ -343,7 +354,7 @@ class ReplacementString:
                         next_elements.append(resolved)
                 else:
                     # Should be unreachable
-                    log_resolve_warning(
+                    expression_resolve_warning(
                         _logger,
                         elem,  # type: ignore
                         "unimplemented expression type '%s'",
