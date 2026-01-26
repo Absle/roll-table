@@ -1,7 +1,7 @@
 from enum import StrEnum, auto
 from pathlib import Path
 
-from roll_table.parsing import _consume, line
+from roll_table.parsing import consume, line
 
 
 DIRECTIVE_START = line.Syntax.DIRECTIVE.value
@@ -65,7 +65,7 @@ class IncludeDirective(Directive):
         if prev_separator is not Syntax.ARG_OPEN:
             raise DirectiveParseError("missing args")
 
-        arg, separator, remaining = _consume(
+        arg, separator, remaining = consume(
             remaining, [Syntax.ARG_SEP, Syntax.ARG_CLOSE]
         )
         arg = arg.strip()
@@ -81,7 +81,7 @@ class IncludeDirective(Directive):
         if not path.is_file():
             raise DirectiveParseError(f"'{arg}' is not a valid path")
 
-        empty, separator, alias = _consume(remaining, [KeyWord.ALIAS])
+        empty, separator, alias = consume(remaining, [KeyWord.ALIAS])
         alias = alias.strip()
         empty = empty.strip()
         if len(empty) != 0:
@@ -98,7 +98,7 @@ def parse_directive(directive_str: str, curr_dir: Path) -> Directive:
     if directive_str.startswith(DIRECTIVE_START):
         directive_str = directive_str[len(DIRECTIVE_START) :]
 
-    name, separator, remaining = _consume(
+    name, separator, remaining = consume(
         directive_str, [Syntax.ARG_OPEN] + list(KeyWord)
     )
     name = name.strip()

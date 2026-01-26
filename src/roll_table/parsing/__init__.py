@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from roll_table.parsing.expression import Expression
 
 
-def _consume(
+def consume(
     string: str, separators: Sequence[StrEnum]
 ) -> tuple[str, StrEnum | None, str]:
     """Partition `string` at the first found separator in `separators`.

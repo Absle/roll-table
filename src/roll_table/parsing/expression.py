@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from roll_table.parsing import (
-    _consume,
+    consume,
     expression_parse_warning,
     expression_resolve_warning,
 )
@@ -184,7 +184,7 @@ class RefExpr(Expression):
     def __init__(self, raw_expr: str, namespace: dict[str, Path], csv_path, line):
         super().__init__(raw_expr, csv_path, line)
 
-        alias, separator, raw_expr = _consume(raw_expr, [Syntax.FIELD_OPEN])
+        alias, separator, raw_expr = consume(raw_expr, [Syntax.FIELD_OPEN])
         alias.strip()
         raw_expr.strip()
         if len(alias) == 0:
@@ -209,7 +209,7 @@ class RefExpr(Expression):
         if separator is None:
             self._field_name = None
         else:
-            field_name, separator, raw_expr = _consume(raw_expr, [Syntax.FIELD_CLOSE])
+            field_name, separator, raw_expr = consume(raw_expr, [Syntax.FIELD_CLOSE])
             field_name.strip()
             if separator is None:
                 raise ExpressionParseError(
@@ -282,7 +282,7 @@ class ReplacementString:
         orig_str = raw_str
         elements = []
         while len(raw_str) > 0:
-            non_expr, separator, raw_str = _consume(raw_str, [Syntax.REPLACE_OPEN])
+            non_expr, separator, raw_str = consume(raw_str, [Syntax.REPLACE_OPEN])
             if len(non_expr) > 0:
                 elements.append(non_expr)
 
@@ -290,7 +290,7 @@ class ReplacementString:
                 # Reached the end of raw_str with no more expression, break early
                 break
 
-            raw_expr, separator, raw_str = _consume(raw_str, [Syntax.REPLACE_CLOSE])
+            raw_expr, separator, raw_str = consume(raw_str, [Syntax.REPLACE_CLOSE])
             if separator is None:
                 # Reached end of raw_str without closing the expression
                 # Treat it as a plain string and break early
