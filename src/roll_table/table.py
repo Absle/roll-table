@@ -23,6 +23,7 @@ class Table:
     _rows: list[dict[str, str | ReplacementString]]
 
     def __init__(self, filepath: Path):
+        _logger.info("loading table '%s'", filepath.absolute().relative_to(Path.cwd()))
         self._path = Path(filepath).absolute()
 
         with open(self._path) as csv_file:
@@ -57,6 +58,11 @@ class Table:
                         directive.alias,
                     )
                     continue
+                _logger.info(
+                    "including file '%s' as '%s'",
+                    directive.path.relative_to(Path.cwd()),
+                    directive.alias,
+                )
                 namespace[directive.alias] = directive.path
             else:
                 directive_parse_warning(
@@ -78,8 +84,8 @@ class Table:
         ]
 
         raw_table = [
-            # Add the index and original CSV line number as the first elements of each
-            # data line. If it's the header, assign new columns a magic field name
+            # Add the index and original CSV line number as the last elements of each
+            # data line. If it's the header, assign the new columns a magic field name
             (
                 row.strip() + f",{i},{line}\n"
                 if i != 0
@@ -119,17 +125,28 @@ class Table:
         return copy.deepcopy(self._path)
 
     def roll(self) -> dict[str, str | ReplacementString]:
-        return copy.deepcopy(choice(self._rows))
+        rolled = choice(self._rows)
+        _logger.debug(
+            "rolled '%s' on table '%s'",
+            repr(rolled),
+            self._path.relative_to(Path.cwd()),
+        )
+        return copy.deepcopy(rolled)
 
     def to_json(self) -> str:
         lines = ["["]
         for i, row in enumerate(self._rows):
             lines.append("    {")
             for j, (k, v) in enumerate(row.items()):
-                if j == len(row) - 1:
-                    line = f'        "{k}": "{v}"'
+                if type(v) is ReplacementString:
+                    v_str = repr(v)
                 else:
-                    line = f'        "{k}": "{v}",'
+                    v_str = v
+                if j == len(row) - 1:
+                    line = f'        "{k}": "{v_str}"'
+                else:
+                    line = f'        "{k}": "{v_str}",'
+                # Handle windows paths
                 lines.append(line.replace("\\", "\\\\"))
 
             if i == len(self._rows) - 1:

@@ -1,9 +1,12 @@
+import logging
 from enum import StrEnum, auto
 from pathlib import Path
 
 from roll_table.parsing import consume, line
 
 DIRECTIVE_START = line.Syntax.DIRECTIVE.value
+
+_logger = logging.getLogger(__name__)
 
 
 class DirectiveParseError(Exception):
@@ -40,16 +43,15 @@ class IncludeDirective(Directive):
     alias: str
 
     def __init__(self, path: Path, alias: str | None = None):
-        kind = Kind.INCLUDE
-        super().__init__(kind)
-        self.path = path
         if alias is None:
-            self.alias = self.path.stem
-        else:
-            self.alias = alias
+            alias = path.stem
 
-        if not IncludeDirective._is_valid_alias(self.alias):
-            raise DirectiveParseError(f"invalid alias '{self.alias}'")
+        if not IncludeDirective._is_valid_alias(alias):
+            raise DirectiveParseError(f"invalid alias '{alias}'")
+
+        super().__init__(Kind.INCLUDE)
+        self.path = path
+        self.alias = alias
 
     @staticmethod
     def _is_valid_alias(alias: str) -> bool:
@@ -59,8 +61,6 @@ class IncludeDirective(Directive):
     def _parse(
         prev_separator: StrEnum | None, remaining: str, curr_dir: Path
     ) -> "IncludeDirective":
-        kind = Kind.INCLUDE
-
         if prev_separator is not Syntax.ARG_OPEN:
             raise DirectiveParseError("missing args")
 
@@ -79,6 +79,8 @@ class IncludeDirective(Directive):
         path = curr_dir.joinpath(arg).absolute()
         if not path.is_file():
             raise DirectiveParseError(f"'{arg}' is not a valid path")
+        else:
+            _logger.debug("path arg resolved to '%s'", path)
 
         empty, separator, alias = consume(remaining, [KeyWord.ALIAS])
         alias = alias.strip()
@@ -87,16 +89,21 @@ class IncludeDirective(Directive):
             raise DirectiveParseError(
                 f"expected '{KeyWord.ALIAS.value}' or end of directive, found '{empty}'"
             )
-        elif separator is None:
-            return IncludeDirective(path)
+
+        if separator is None:
+            include = IncludeDirective(path)
         else:
-            return IncludeDirective(path, alias)
+            include = IncludeDirective(path, alias)
+
+        _logger.debug("alias resolved to '%s'", include.alias)
+        return include
 
 
 def parse_directive(directive_str: str, curr_dir: Path) -> Directive:
     if directive_str.startswith(DIRECTIVE_START):
         directive_str = directive_str[len(DIRECTIVE_START) :]
 
+    _logger.debug("parsing directive '%s'", directive_str)
     name, separator, remaining = consume(
         directive_str, [Syntax.ARG_OPEN] + list(KeyWord)
     )
@@ -107,6 +114,7 @@ def parse_directive(directive_str: str, curr_dir: Path) -> Directive:
     except KeyError:
         raise DirectiveParseError(f"unknown directive '{name}'")
 
+    _logger.debug("parsing as %s directive", kind.name)
     match kind:
         case Kind.INCLUDE:
             return IncludeDirective._parse(separator, remaining, curr_dir)

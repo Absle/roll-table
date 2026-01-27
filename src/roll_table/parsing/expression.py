@@ -29,8 +29,7 @@ LEGAL_AST_NODES = LEGAL_OP_KINDS + LEGAL_BINARY_OPS + LEGAL_UNARY_OPS
 
 
 class ExpressionParseError(Exception):
-    def __init__(self, message: str):
-        super().__init__(message)
+    pass
 
 
 class Syntax(StrEnum):
