@@ -3,7 +3,6 @@ from pathlib import Path
 
 from roll_table.parsing import consume, line
 
-
 DIRECTIVE_START = line.Syntax.DIRECTIVE.value
 
 

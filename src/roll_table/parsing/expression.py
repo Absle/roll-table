@@ -12,9 +12,7 @@ from roll_table.parsing import (
 )
 from roll_table.utils import roll_dice
 
-
 _logger = logging.getLogger(__name__)
-
 
 if TYPE_CHECKING:
     # Have to do this to avoid circular import during an actual run

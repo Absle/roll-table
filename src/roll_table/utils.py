@@ -3,7 +3,6 @@ import random
 from pathlib import Path
 from typing import Any
 
-
 PROG = "roll-table"
 SYS_LOG_HOME = os.environ.get("XDG_STATE_HOME", default=None)
 if SYS_LOG_HOME is None:
@@ -104,7 +103,6 @@ if __name__ == "__main__":
 
     # Should print -30.0
     # print(resolve_dice_arithmetic("-(1 + 2 - 3 * 4 / 5 ** 6 // 7) - +(8 + 9 + 10)"))
-
     # num_dice = 1
     # num_sides = 6
     # histo: dict[int, int] = {i: 0 for i in _dice_range(num_dice, num_sides)}

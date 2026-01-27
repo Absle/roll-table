@@ -2,7 +2,7 @@ import logging
 from enum import StrEnum
 from logging import Logger
 from pathlib import Path
-from typing import Sequence, TYPE_CHECKING
+from typing import TYPE_CHECKING, Sequence
 
 if TYPE_CHECKING:
     from roll_table.parsing.expression import Expression

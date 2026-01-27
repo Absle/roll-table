@@ -10,9 +10,9 @@ from roll_table.parsing.directive import (
     IncludeDirective,
     parse_directive,
 )
-from roll_table.parsing.expression import parse_replacement_string, ReplacementString
-from roll_table.parsing.line import MAGIC_FIELDS, MagicField, Syntax as LineSyntax
-
+from roll_table.parsing.expression import ReplacementString, parse_replacement_string
+from roll_table.parsing.line import MAGIC_FIELDS, MagicField
+from roll_table.parsing.line import Syntax as LineSyntax
 
 _logger = logging.getLogger(__name__)
 

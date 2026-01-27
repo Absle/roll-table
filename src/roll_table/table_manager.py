@@ -3,7 +3,6 @@ from pathlib import Path
 from roll_table.parsing.expression import ReplacementString
 from roll_table.table import Table
 
-
 DEFAULT_DEPTH = 100
 
 
