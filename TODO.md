@@ -23,15 +23,10 @@
     - `scryer`?
     - `table-of-many-things`?
     - `roll-play`?
+    - `role-table`?
 
 - need away to make a distributable application for installing
     - [`pyapp`][pyapp-github] seems like the best option and seems to have some kind of [uv integration][pyapp-uv]
-
-- ~~rework all warnings into a proper logging system rather than misusing `warnings.warn`~~
-    - ~~probably also rethink using `errors.py` [removed it]~~
-    - write new warnings for expression parsing and any other missing areas
-    - add CLI option for changing log level
-    - add CLI option for cleanup?
 
 - add a `--histogram` option to CLI
     - print a histogram for each field, tracking its occurences
@@ -41,7 +36,13 @@
 
 ## DONE
 
+- ~~rework all warnings into a proper logging system rather than misusing `warnings.warn`~~
+    - ~~probably also rethink using `errors.py` [removed it]~~
+    - ~~write new warnings for expression parsing and any other missing areas~~
+    - ~~write info and debug logs for table parsing, rolling, and resolving~~
+    - ~~add CLI option for changing log level~~
+    - ~~add envar for configure log level~~
+- ~~refactor expression parsing and make a proper `ReplacementString` + `Expression` classes for a basic syntax tree~~
+- ~~refactor directive parsing with proper syntax classes~~
 - ~~dice rolling and/or math in replacements (`${1d6*10}`)~~
     - ~~update README for this feature now that it's implemented~~
-- ~~refactor directive parsing with proper syntax classes~~
-- ~~refactor expression parsing and make a proper `ReplacementString` + `Expression` classes for a basic syntax tree~~
