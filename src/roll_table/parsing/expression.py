@@ -92,11 +92,15 @@ class Expression:
     ) -> "Expression":
         if len(raw_expr) == 0:
             raise ExpressionParseError("empty expressions are not allowed")
+        _logger.info("parsing expression '%s'", raw_expr)
 
         if raw_expr[0] in ARITH_STARTERS:
-            return DiceArithExpr(raw_expr, csv_path, line)
+            expression = DiceArithExpr(raw_expr, csv_path, line)
         else:
-            return RefExpr(raw_expr, namespace, csv_path, line)
+            expression = RefExpr(raw_expr, namespace, csv_path, line)
+
+        _logger.debug("resulting expression: '%s'", repr(expression))
+        return expression
 
 
 class DiceArithExpr(Expression):
@@ -190,6 +194,7 @@ class RefExpr(Expression):
             raise ExpressionParseError(f"could not resolve alias '{alias}'")
 
         self._alias = alias
+        _logger.debug("alias = '%s'", self._alias)
         if alias == Syntax.PREV_REF.value:
             self._path = None
         else:
@@ -202,6 +207,7 @@ class RefExpr(Expression):
                     f"alias '{alias}' resolved to path '{self._path}', but that path is "
                     "not a valid file"
                 )
+        _logger.debug("path = '%s'", str(self._path))
 
         if separator is None:
             self._field_name = None
@@ -214,6 +220,7 @@ class RefExpr(Expression):
                 )
             else:
                 self._field_name = field_name
+        _logger.debug("field_name = '%s'", str(self._field_name))
 
     def _resolve(
         self, table_manager: "TableManager", prev_roll: dict | None
@@ -276,6 +283,10 @@ class ReplacementString:
     def _parse(
         raw_str: str, namespace: dict[str, Path], csv_path: Path, line: int
     ) -> "ReplacementString | str":
+        if Syntax.REPLACE_OPEN.value not in raw_str:
+            return raw_str
+        _logger.info("parsing replacement string '%s'", raw_str)
+
         orig_str = raw_str
         elements = []
         while len(raw_str) > 0:
@@ -326,9 +337,33 @@ class ReplacementString:
             return orig_str
 
     def _resolve(self, table_manager: "TableManager", depth_limit: int) -> str:
+        if _logger.getEffectiveLevel() <= logging.INFO:
+            # This could be an expensive join that logger can't handle lazily
+            _logger.info(
+                "resolving '%s'",
+                "".join(
+                    [
+                        elem.raw_expr if type(elem) is Expression else str(elem)
+                        for elem in self._original_elements
+                    ]
+                ),
+            )
+
         current_elements = self._original_elements
         prev_roll: dict | None = None
-        for _ in range(1, depth_limit + 1):
+        for step in range(0, depth_limit):
+            if _logger.getEffectiveLevel() <= logging.DEBUG:
+                _logger.debug(
+                    "resolve step %d: '%s'",
+                    step,
+                    "".join(
+                        [
+                            elem.raw_expr if type(elem) is Expression else str(elem)
+                            for elem in current_elements
+                        ]
+                    ),
+                )
+
             if not any([type(e) is not str for e in current_elements]):
                 # out of non-string elements, break early
                 break
@@ -360,7 +395,10 @@ class ReplacementString:
                     next_elements.append(elem.raw_expr)  # type: ignore
             current_elements = next_elements
         self._resolved_elements = current_elements
-        return "".join([str(e) for e in current_elements])
+
+        resolved = "".join([str(e) for e in current_elements])
+        _logger.info("resolved to '%s'", resolved)
+        return resolved
 
 
 def parse_replacement_string(

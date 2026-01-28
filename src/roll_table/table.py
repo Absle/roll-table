@@ -86,7 +86,7 @@ class Table:
             # Add the index and original CSV line number as the last elements of each
             # data line. If it's the header, assign the new columns a magic field name
             (
-                row.strip() + f",{i},{line}\n"
+                row.strip() + f",{i-1},{line}\n"
                 if i != 0
                 else row.strip() + f",{MagicField.INDEX},{MagicField.LINE}\n"
             )
@@ -123,10 +123,18 @@ class Table:
     def path(self) -> Path:
         return copy.deepcopy(self._path)
 
+    @property
+    def relative_path(self) -> Path:
+        return self._path.relative_to(Path.cwd())
+
     def roll(self) -> dict[str, str | ReplacementString]:
         rolled = choice(self._rows)
+
+        relative = str(self.relative_path)
+        line = int(rolled.get(MagicField.LINE.value))  # type:ignore
+        _logger.info("rolled %s:%d", relative, line)
         _logger.debug(
-            "rolled '%s' on table '%s'",
+            "rolled %s on '%s'",
             repr(rolled),
             self._path.relative_to(Path.cwd()),
         )
@@ -155,9 +163,8 @@ class Table:
         lines.append("]")
         return "\n".join(lines)
 
-    def write_postprocess_csv(self, path: str):
-        with open(path, "w", newline="") as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=self._field_names)
-            writer.writeheader()
-            for row in self._rows:
-                writer.writerow(row)
+    def write_postprocess_csv(self, write_obj):
+        writer = csv.DictWriter(write_obj, fieldnames=self._field_names)
+        writer.writeheader()
+        for row in self._rows:
+            writer.writerow(row)

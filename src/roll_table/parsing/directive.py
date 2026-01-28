@@ -46,6 +46,9 @@ class IncludeDirective(Directive):
         if alias is None:
             alias = path.stem
 
+        _logger.debug("path = '%s'", str(path))
+        _logger.debug("alias = '%s'", alias)
+
         if not IncludeDirective._is_valid_alias(alias):
             raise DirectiveParseError(f"invalid alias '{alias}'")
 
@@ -79,8 +82,6 @@ class IncludeDirective(Directive):
         path = curr_dir.joinpath(arg).absolute()
         if not path.is_file():
             raise DirectiveParseError(f"'{arg}' is not a valid path")
-        else:
-            _logger.debug("path arg resolved to '%s'", path)
 
         empty, separator, alias = consume(remaining, [KeyWord.ALIAS])
         alias = alias.strip()
@@ -94,8 +95,6 @@ class IncludeDirective(Directive):
             include = IncludeDirective(path)
         else:
             include = IncludeDirective(path, alias)
-
-        _logger.debug("alias resolved to '%s'", include.alias)
         return include
 
 
@@ -103,7 +102,7 @@ def parse_directive(directive_str: str, curr_dir: Path) -> Directive:
     if directive_str.startswith(DIRECTIVE_START):
         directive_str = directive_str[len(DIRECTIVE_START) :]
 
-    _logger.debug("parsing directive '%s'", directive_str)
+    _logger.info("parsing directive '%s'", directive_str)
     name, separator, remaining = consume(
         directive_str, [Syntax.ARG_OPEN] + list(KeyWord)
     )
