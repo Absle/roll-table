@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 PROG = "roll-table"
+LOG_ENVAR = "ROLL_TABLE_LOG_LEVEL"
 
 
 def user_app_log_dir() -> Path | None:

@@ -1,12 +1,14 @@
 import datetime
 import logging
+import os
 import re
+import sys
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
 from roll_table.parsing.line import MAGIC_FIELDS
 from roll_table.table_manager import TableManager
-from roll_table.utils import PROG, user_app_log_dir
+from roll_table.utils import LOG_ENVAR, PROG, user_app_log_dir
 
 
 class InvalidFieldError(Exception):
@@ -17,9 +19,15 @@ class InvalidFieldError(Exception):
         )
 
 
-def _init_cli_logging(console_level=logging.WARNING, cleanup: bool = False):
+def _init_cli_logging(log_level: int | None, cleanup: bool = True):
+    console_level = logging.WARNING
     console_format = "%(levelname)s: %(message)s"
     log_file_format = "%(asctime)s.%(msecs)03d\t%(levelname)-8s\t%(message)s"
+
+    if log_level is None:
+        # No log level set by user, just outputting warnings to console
+        logging.basicConfig(level=console_level, format=console_format)
+        return
 
     user_log_root = user_app_log_dir()
     if user_log_root is None:
@@ -64,7 +72,7 @@ def _init_cli_logging(console_level=logging.WARNING, cleanup: bool = False):
     # Set up logging to file
     datetime.datetime.now().isoformat
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=log_level,
         format=log_file_format,
         datefmt="%Y-%m-%d %H:%M:%S",
         filename=str(log_path),
@@ -78,6 +86,7 @@ def _init_cli_logging(console_level=logging.WARNING, cleanup: bool = False):
     logging.getLogger().addHandler(console_handler)
 
     logging.debug("successfully logging at '%s'", str(log_path))
+    print(f"successfully logging at '{log_path}'", file=sys.stderr)
     if not cleanup:
         return
 
@@ -105,6 +114,20 @@ def _init_cli_logging(console_level=logging.WARNING, cleanup: bool = False):
 
 def _arg_parser() -> ArgumentParser:
     parser = ArgumentParser(prog=PROG)
+
+    choices = ["debug", "info", "warning", "error", "critical"]
+    help = (
+        f"enable detailed logging at level {', '.join(choices[:-1])}, or {choices[-1]}; "
+        f"overrides environment variable ${LOG_ENVAR}"
+    )
+    parser.add_argument(
+        "--log",
+        metavar="LEVEL",
+        type=str,
+        choices=choices,
+        help=help,
+    )
+
     parser.add_argument(
         "-n",
         "--number",
@@ -113,7 +136,9 @@ def _arg_parser() -> ArgumentParser:
         default=1,
         help="repeat the specified roll N times",
     )
+
     parser.add_argument("path", metavar="PATH", type=str, help="path to csv file")
+
     parser.add_argument(
         "fields",
         metavar="FIELD",
@@ -153,15 +178,25 @@ def _main_impl(args: Namespace):
 
 def main():
     args = _arg_parser().parse_args()
-    _init_cli_logging(cleanup=True)
+
+    log_arg = None
+    if args.log is not None:
+        log_arg = args.log.upper()
+    elif os.environ.get(LOG_ENVAR, default=None) is not None:
+        log_arg = os.environ[LOG_ENVAR].upper()
+    log_level = logging.getLevelNamesMapping().get(log_arg, None)  # type: ignore
+
+    _init_cli_logging(log_level)
     logger = logging.getLogger(__name__)
+
     try:
         _main_impl(args)
     except Exception as e:
-        logger.critical("%s: %s: %s", PROG, type(e).__name__, str(e))
+        logger.critical("%s: %s", type(e).__name__, str(e))
         if hasattr(e, "__notes__"):
             for note in e.__notes__:
                 logger.critical(note)
+        exit(1)
     exit(0)
 
 
