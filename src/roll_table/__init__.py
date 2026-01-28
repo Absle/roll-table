@@ -55,8 +55,8 @@ def _init_cli_logging(log_level: int | None, cleanup: bool = True):
 
     # Ensure log file exists and we have write permissions
     cli_log_file_fmt = "{}" + f"_{PROG}_cli.log"
-    today = datetime.date.today().isoformat()
-    log_path = log_home.joinpath(cli_log_file_fmt.format(today)).absolute()
+    now = datetime.datetime.now().isoformat().replace(":", "-").replace(".", "_")
+    log_path = log_home.joinpath(cli_log_file_fmt.format(now)).absolute()
     try:
         log_path.touch(exist_ok=True)
         _ = open(log_path, "a")
@@ -92,8 +92,9 @@ def _init_cli_logging(log_level: int | None, cleanup: bool = True):
 
     # Clean up old log files
     log_age_limit = 90  # days
-    regex = cli_log_file_fmt.format(r"\d\d\d\d-\d\d-\d\d")
+    regex = cli_log_file_fmt.format(r"\d\d\d\d-\d\d-\d\dT\d\d-\d\d-\d\d_\d+")
     cli_log_re = re.compile(regex)
+    today = datetime.date.today().isoformat()
     for file_path in log_home.iterdir():
         file_name = file_path.name
         if file_path.is_file() and cli_log_re.fullmatch(file_name) is not None:
@@ -102,7 +103,7 @@ def _init_cli_logging(log_level: int | None, cleanup: bool = True):
             delta = datetime.date.today() - log_date
             if delta.days > log_age_limit:
                 logging.info(
-                    "found log '%s' older than %d days, deleting",
+                    "found log '%s' older than %d days, deleting...",
                     file_name,
                     log_age_limit,
                 )
