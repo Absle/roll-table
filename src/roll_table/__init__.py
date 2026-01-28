@@ -6,7 +6,7 @@ from pathlib import Path
 
 from roll_table.parsing.line import MAGIC_FIELDS
 from roll_table.table_manager import TableManager
-from roll_table.utils import PROG, SYS_LOG_HOME
+from roll_table.utils import PROG, user_app_log_dir
 
 
 class InvalidFieldError(Exception):
@@ -21,24 +21,25 @@ def _init_cli_logging(console_level=logging.WARNING, cleanup: bool = False):
     console_format = "%(levelname)s: %(message)s"
     log_file_format = "%(asctime)s.%(msecs)03d\t%(levelname)-8s\t%(message)s"
 
-    if SYS_LOG_HOME is None:
+    user_log_root = user_app_log_dir()
+    if user_log_root is None:
         # User application logging directory could not be determined for this system
         # Only logging to console
         logging.basicConfig(level=console_level, format=console_format)
         logging.warning(
-            "user application log directory could not be determined, logging to console "
+            "user application log directory could not be determined; logging to console "
             "only"
         )
         return
 
     # Ensure log directories exist and attempt to create them if not
-    log_home = Path(SYS_LOG_HOME).joinpath(PROG + "/logs")
+    log_home = user_log_root.joinpath(PROG + "/logs")
     try:
         log_home.mkdir(parents=True, exist_ok=True)
     except:
         logging.basicConfig(level=console_level, format=console_format)
         logging.warning(
-            "failed to find or create application log directory '%s', logging to console "
+            "failed to find or create application log directory '%s'; logging to console "
             "only",
             str(log_home),
         )
@@ -54,7 +55,8 @@ def _init_cli_logging(console_level=logging.WARNING, cleanup: bool = False):
     except:
         logging.basicConfig(level=console_level, format=console_format)
         logging.warning(
-            "failed to create or write to log file '%s', logging to console only",
+            "failed to create or write to log file '%s', possibly due to a permission "
+            "issue; logging to console only",
             str(log_path),
         )
         return

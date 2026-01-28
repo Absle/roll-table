@@ -1,22 +1,63 @@
 import os
+import platform
 import random
 from pathlib import Path
 from typing import Any
 
 PROG = "roll-table"
-SYS_LOG_HOME = os.environ.get("XDG_STATE_HOME", default=None)
-if SYS_LOG_HOME is None:
-    try:
-        import platform
 
+
+def user_app_log_dir() -> Path | None:
+    """Find the user application log directory and return an absolute path to it.
+
+    In order of precedence, this directory is:
+
+    1. The path indicated by envar `XDG_STATE_HOME` if the variable exists, can be parsed
+       as a path, and the path is valid.
+    2. The path indicated by envar `LocalAppData` if the platform is Windows, the variable
+       exists, can be parsed as a path, and the path is valid.
+    3. The platform's default directory indicated below if the user's home directory can
+       be determined and the path is valid.
+        - Windows: `~/AppData/Local`
+        - Unix-like: `~/.local/state`
+    4. Otherwise, `None` is returned to indicate failure.
+
+    A valid path is one that exists and is a directory, or one that does not exist yet
+    and therefore the logging initializer may attempt to create it.
+    """
+    xdg_envar = os.environ.get("XDG_STATE_HOME", default=None)
+    if xdg_envar is not None and Path(xdg_envar).is_dir():
+        path_str = xdg_envar
+    else:
         if platform.system() == "Windows":
-            SYS_LOG_HOME = os.environ.get("LocalAppData", default=None)
-            if SYS_LOG_HOME is None:
-                SYS_LOG_HOME = str(Path.home().joinpath("AppData/Local").absolute())
+            appdata_envar = os.environ.get("LocalAppData", default=None)
+            if appdata_envar is not None:
+                path_str = appdata_envar
+            else:
+                try:
+                    # Windows default
+                    path_str = str(Path.home().joinpath("AppData/Local").absolute())
+                except:
+                    # Could not determine home directory for some reason
+                    return None
         else:
-            SYS_LOG_HOME = str(Path.home().joinpath(".local/state").absolute())
+            try:
+                # XDG default
+                path_str = str(Path.home().joinpath(".local/state").absolute())
+            except:
+                # Could not determine home directory for some reason
+                return None
+    try:
+        path = Path(path_str)
     except:
-        SYS_LOG_HOME = None
+        return None
+
+    if path.is_dir() or not path.exists():
+        # It's fine if the logging directory doesn't exist yet, but it's bad if there's a
+        # non-directory file there for some reason
+        return path
+    else:
+        return None
 
 
 def dice_range(num_dice: int, num_sides: int) -> range:

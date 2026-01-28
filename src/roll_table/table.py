@@ -77,7 +77,6 @@ class Table:
         # Pre-processing include replacement aliases
         line_rows = [
             # Create of raw rows w/ original CSV line numbers
-            # f"{line+1}," + row if line != 0 else row
             (i + 1, row)
             for i, row in enumerate(raw_csv)
             if not row.startswith(LineSyntax.COMMENT.value)
