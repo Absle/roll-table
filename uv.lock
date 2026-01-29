@@ -2,7 +2,24 @@ version = 1
 revision = 3
 requires-python = ">=3.11"
 
+[manifest]
+members = [
+    "roll-table",
+    "roll-table-cli",
+]
+
 [[package]]
 name = "roll-table"
 version = "0.1.0"
 source = { editable = "." }
+
+[[package]]
+name = "roll-table-cli"
+version = "0.1.0"
+source = { editable = "packages/roll-table-cli" }
+dependencies = [
+    { name = "roll-table" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "roll-table", editable = "." }]

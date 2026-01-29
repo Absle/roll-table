@@ -9,8 +9,9 @@
             "name": "debugpy: Current File",
             "type": "debugpy",
             "request": "launch",
-            "program": "${file}",
             "console": "integratedTerminal",
+            "env": { "ROLL_TABLE_LOG_LEVEL": "debug" },
+            "program": "${file}",
         },
         {
             // Debug the roll-table package with the current file as the target
@@ -19,7 +20,7 @@
             "request": "launch",
             "console": "integratedTerminal",
             "env": { "ROLL_TABLE_LOG_LEVEL": "debug" },
-            "program": "${workspaceFolder}/src/roll_table/cli.py",
+            "program": "${workspaceFolder}/packages/roll-table-cli/src/roll_table_cli/__init__.py",
             "args": [
                 "${file}"
             ]

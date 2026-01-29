@@ -6,19 +6,40 @@ Supports a simple string replacement language that allows CSV files to reference
 
 ## Installation
 
-TODO; right now you would probably have to just build and install from source using `uv`. Other tools that support the `pyproject.toml` standard may also work.
+TODO: need some way to distribute without building from source, preferably one that doesn't also depend on uv
 
-To install from source, at the root of the repo run this command:
+### Installing the `roll_table` Library
 
-      $ uv tool install --from . roll-table
+Currently `roll_table` can be easily included as a static library by any project that can integrate standard `pyproject.toml` packages. Just download this repo, and integrate it with your build system the same you would any other external package.
 
-If you already have it installed, but want to update after a fresh code pull:
+If you plan on checking `roll_table` into your repo as part of this, or if you want to minimize the code size for some other reason, you can optionally delete the `packages` directory. Those are all applications that *depend* on the `roll_table` library, not the other way around.
 
-      $ uv tool reinstall --from . roll-table
+I would not currently recommend this, but you if you have access to a build system that can create a wheel from a `pyproject.toml` project, you could also choose to install this wheel into your project's python environment/virtual environment as a package.
+
+I would not currently recommend this because most methods of installing wheel packages likes this depend on the package versioning itself accurately to make updating easier, and currently I'm not incrementing any of the versions in this repo. So if you want use this method installation method and choose to upgrade to a new version of the code later, you will most likely need to manually uninstall the old version and reinstall the new version you've built.
+
+### Installing the `roll-table` CLI Tool
+
+Right now you would probably have to just build and install from source using `uv`. There may be a way to use other tools that support the `pyproject.toml` standard, but this would most likely require editing the TOML file in the `roll-table-cli` package. This is because the CLI depends on the `roll_table` library, and currently the location of this dependency is provided through `uv`'s workspace feature. You would also need to update the `[build-system]` to use whatever you're trying to switch it to.
+
+To install from source using `uv`, in the `packages/roll-table-cli` directory of this repo, run the following command:
+
+```sh
+$ cd packages/roll-table-cli
+$ uv tool install --from . roll-table
+```
+
+If you already have it installed, but want to update after a fresh code pull, from the same directory run this command:
+
+```sh
+$ uv tool reinstall --from . roll-table
+```
 
 Both of these commands will have `uv` attempt to install a `roll-table` executable somewhere that is available on your `PATH`. You can see exactly where this is with this command:
 
-      $ uv tool dir --bin
+```sh
+$ uv tool dir --bin
+```
 
 The default install location executables for each OS is documented [here][uv-storage-exe-dir]. Information on customizing install location of the executable can be found [here][uv-storage-tool-exes]. Information on customizing the Python package install location can be found [here][uv-storage-tools]. General information on how `uv` handles tools and tool installation can be found [here][uv-concepts-tools].
 
