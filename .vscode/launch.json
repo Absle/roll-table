@@ -17,8 +17,9 @@
             "name": "debugpy: roll-table ${file}",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/src/roll_table/__init__.py",
             "console": "integratedTerminal",
+            "env": { "ROLL_TABLE_LOG_LEVEL": "debug" },
+            "program": "${workspaceFolder}/src/roll_table/cli.py",
             "args": [
                 "${file}"
             ]

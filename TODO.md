@@ -15,8 +15,6 @@
 
 - filtering api for `TableManager.roll` and a new `TableManager.filter`
 
-- Breakout CLI into a separate file and clean up `roll-table/__init__.py` for use as a library
-
 - need a better name for the gui application
     - `town-scryer`
         - might already be taken by some AI slop product?
@@ -34,6 +32,7 @@
 
 ## DONE
 
+- ~~Breakout CLI into a separate file and clean up `roll-table/__init__.py` for use as a library~~
 - ~~add a `--histogram` option to CLI~~
     - ~~print a histogram for each field, tracking its occurences~~
 - ~~rework all warnings into a proper logging system rather than misusing `warnings.warn`~~
