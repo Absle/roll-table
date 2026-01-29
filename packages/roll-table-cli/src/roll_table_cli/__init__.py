@@ -54,10 +54,13 @@ def _init_cli_logging(log_level: int | None, cleanup: bool = True):
         )
         return
 
-    # Ensure log file exists and we have write permissions
+    # Create log file name using a ISO-8601 basic format timestamp
     cli_log_file_fmt = "{}" + f"_{PROG}_cli.log"
-    now = datetime.datetime.now().isoformat().replace(":", "-").replace(".", "_")
-    log_path = log_home.joinpath(cli_log_file_fmt.format(now)).absolute()
+    timestamp = datetime.datetime.now().isoformat(timespec="milliseconds")
+    timestamp = timestamp.replace("-", "").replace(":", "")
+    log_path = log_home.joinpath(cli_log_file_fmt.format(timestamp)).absolute()
+
+    # Ensure log file exists and we have write permissions
     try:
         log_path.touch(exist_ok=True)
         _ = open(log_path, "a")
@@ -93,25 +96,26 @@ def _init_cli_logging(log_level: int | None, cleanup: bool = True):
 
     # Clean up old log files
     log_age_limit = 90  # days
-    regex = cli_log_file_fmt.format(r"\d\d\d\d-\d\d-\d\dT\d\d-\d\d-\d\d_\d+")
+    regex = cli_log_file_fmt.format(r"\d{8}T\d{6}\.\d{3}")
     cli_log_re = re.compile(regex)
-    today = datetime.date.today().isoformat()
-    for file_path in log_home.iterdir():
-        file_name = file_path.name
-        if file_path.is_file() and cli_log_re.fullmatch(file_name) is not None:
-            date_str = file_name[0 : len(today)]
+
+    for path in log_home.iterdir():
+        if path.is_file() and cli_log_re.fullmatch(path.name) is not None:
+            date_str = path.name.partition("T")[0]
             log_date = datetime.date.fromisoformat(date_str)
             delta = datetime.date.today() - log_date
+
             if delta.days > log_age_limit:
                 logging.info(
-                    "found log '%s' older than %d days, deleting...",
-                    file_name,
+                    "found log '%s' older than %d days (%d), deleting...",
+                    path.name,
                     log_age_limit,
+                    delta.days,
                 )
                 try:
-                    file_path.unlink()
+                    path.unlink()
                 except:
-                    logging.warning("failed to delete old log '%s'", file_name)
+                    logging.warning("failed to delete old log '%s'", path.name)
 
 
 def _arg_parser() -> ArgumentParser:
