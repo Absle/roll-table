@@ -74,16 +74,17 @@ def roll_dice(num_dice: int, num_sides: int) -> int:
 
 
 def histogram_str(
-    dataset: dict[Any, int], max_width=100, sort=True, legend=False
+    dataset: dict[Any, int], max_width=100, count_sort=False, sort=False, legend=False
 ) -> str:
     """Creates a simple text histogram from the `dataset` for easy visualization.
 
     Assumes that the keys of `dataset` are the domain of the data, and the values are the
-    corresponding number of occurences.
+    corresponding number of occurences. The keys of `dataset` *must* support `str()`.
 
-    The keys of `histo` *must* support `str()`. If the keys support comparison and `sort`
-    is `True`, then the histogram will be created in the sorted order of the keys.
-    Otherwise, the data will be printed in the order it is received.
+    If `count_sort` is `True`, the histogram will be created in the sorted order of the
+    occurence counts. If the keys support comparison and `sort` is `True`, then the
+    histogram will be created in the sorted order of the keys. Otherwise, the data will
+    be printed in the order it is received.
 
     This function will attempt to keep the total width of the histogram text less than or
     equal to `max_width` by adjusting the value of each "pip" on the right side of the
@@ -100,13 +101,17 @@ def histogram_str(
 
     - `dataset`: the dataset to visualize
     - `max_width`: the maximum allowed width for each line of the histogram text
-    - `sort`: if True, attempts to create the histogram in key-sorted order
-    - `legend`: if True, add a line to the histogram indicating the value of each "pip"
+    - `count_sort`: if `True`, attempts to create the histogram in count-sorted order;
+      overrides `sort` if both are `True`
+    - `sort`: if `True`, attempts to create the histogram in key-sorted order
+    - `legend`: if `True`, add a line to the histogram indicating the value of each "pip"
     """
     PIP = "*"
     PIPLET = "."
 
-    if sort:
+    if count_sort:
+        keys = [item[0] for item in sorted(dataset.items(), key=lambda item: item[1])]
+    elif sort:
         try:
             keys = sorted(dataset.keys())
         except:
@@ -122,11 +127,7 @@ def histogram_str(
     max_val = max(dataset.values())
     pip_val = max([max_val // right_width, 1])
 
-    if legend:
-        lines = [f"{PIP} = {pip_val}"]
-    else:
-        lines = []
-
+    lines = []
     for key in keys:
         num_pips = round(dataset[key] / pip_val)
         if num_pips > 0:
@@ -136,31 +137,12 @@ def histogram_str(
         else:
             pips = ""
         lines.append(f"{key:>{left_width}}: {pips}")
+
+    if legend:
+        values = dataset.values()
+        average = sum(values) / len(values)
+        lines.append(
+            f"{PIP} = {pip_val}; # of keys = {len(keys)}; avg = {average:.3f}; min = "
+            f"{min(values)}; max = {max(values)}"
+        )
     return "\n".join(lines)
-
-
-# TODO: remove
-if __name__ == "__main__":
-    from roll_table.parsing.expression import DiceArithExpr
-
-    # Should print -30.0
-    # print(resolve_dice_arithmetic("-(1 + 2 - 3 * 4 / 5 ** 6 // 7) - +(8 + 9 + 10)"))
-    # num_dice = 1
-    # num_sides = 6
-    # histo: dict[int, int] = {i: 0 for i in _dice_range(num_dice, num_sides)}
-    # n = 100_000
-    # for _ in range(n):
-    #     result = int(resolve_dice_arithmetic(f"{num_dice}d{num_sides}"))
-    #     histo[result] += 1
-    # print(histogram_str(histo, legend=True))
-
-    n = 100_000
-    histo: dict[int, int] = {}
-    expr = DiceArithExpr("10 * (2d6 + 3d10 + 1d20 + 5) - 4", Path("__main__.csv"), 0)
-    for _ in range(n):
-        result = int(expr._resolve())
-        if result in histo:
-            histo[result] += 1
-        else:
-            histo[result] = 1
-    print(histogram_str(histo, legend=True))

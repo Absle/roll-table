@@ -18,24 +18,24 @@
 - Breakout CLI into a separate file and clean up `roll-table/__init__.py` for use as a library
 
 - need a better name for the gui application
-    - `town-scryer`?
+    - `town-scryer`
         - might already be taken by some AI slop product?
-    - `scryer`?
-    - `table-of-many-things`?
-    - `roll-play`?
-    - `role-table`?
+    - `scryer`
+    - `table-of-many-things`
+    - `roll-play`
+    - `role-table`
+    - `elder-rolls`
 
-- need away to make a distributable application for installing
+- need a way to make a distributable application for installing
     - [`pyapp`][pyapp-github] seems like the best option and seems to have some kind of [uv integration][pyapp-uv]
-
-- add a `--histogram` option to CLI
-    - print a histogram for each field, tracking its occurences
 
 [pyapp-github]: https://github.com/ofek/pyapp
 [pyapp-uv]: https://ofek.dev/pyapp/latest/config/installation/#uv
 
 ## DONE
 
+- ~~add a `--histogram` option to CLI~~
+    - ~~print a histogram for each field, tracking its occurences~~
 - ~~rework all warnings into a proper logging system rather than misusing `warnings.warn`~~
     - ~~probably also rethink using `errors.py` [removed it]~~
     - ~~write new warnings for expression parsing and any other missing areas~~

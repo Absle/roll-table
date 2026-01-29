@@ -5,10 +5,11 @@ import re
 import sys
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
+from typing import Any
 
 from roll_table.parsing.line import MAGIC_FIELDS
 from roll_table.table_manager import TableManager
-from roll_table.utils import LOG_ENVAR, PROG, user_app_log_dir
+from roll_table.utils import LOG_ENVAR, PROG, histogram_str, user_app_log_dir
 
 
 class InvalidFieldError(Exception):
@@ -116,6 +117,16 @@ def _init_cli_logging(log_level: int | None, cleanup: bool = True):
 def _arg_parser() -> ArgumentParser:
     parser = ArgumentParser(prog=PROG)
 
+    parser.add_argument(
+        "--histogram",
+        action="store_true",
+        help=(
+            "print a histogram for each specified field displaying the number of "
+            "occurences of each value of the field; recommended to be used with large "
+            "values of the --number option"
+        ),
+    )
+
     choices = ["debug", "info", "warning", "error", "critical"]
     help = (
         f"enable detailed logging at level {', '.join(choices[:-1])}, or {choices[-1]}; "
@@ -164,16 +175,31 @@ def _main_impl(args: Namespace):
         fields = [field for field in table.field_names if field not in MAGIC_FIELDS]
     max_length = max([len(field) for field in fields])
 
+    histograms: dict[str, dict[Any, int]] = {}
     for _ in range(args.number):
         row = tm.roll_resolve(csv_path)
-        for field in fields:
-            if len(fields) > 1:
-                print(f"{field: >{max_length}}: {row[field]}")
-            else:
-                print(f"{row[field]}")
+        if not args.histogram:
+            for field in fields:
+                if len(fields) > 1:
+                    print(f"{field: >{max_length}}: {row[field]}")
+                else:
+                    print(f"{row[field]}")
 
-        if len(fields) > 1:
-            # Print a blank line between each roll if we're printing multiple fields
+            if len(fields) > 1:
+                # Print a blank line between each roll if we're printing multiple fields
+                print()
+        else:
+            for field in fields:
+                if field not in histograms:
+                    histograms[field] = {}
+                if row[field] not in histograms[field]:
+                    histograms[field][row[field]] = 1
+                else:
+                    histograms[field][row[field]] += 1
+    if args.histogram:
+        for field, histogram in histograms.items():
+            print(f"Field: {field}")
+            print(histogram_str(histogram, count_sort=True, legend=True))
             print()
 
 
