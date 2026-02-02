@@ -3,13 +3,15 @@ import logging
 import os
 import re
 import sys
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentParser
 from pathlib import Path
 from typing import Any
 
 from roll_table.parsing.line import MAGIC_FIELDS
 from roll_table.table_manager import TableManager
 from roll_table.utils import LOG_ENVAR, PROG, histogram_str, user_app_log_dir
+
+_logger = logging.getLogger(__name__)
 
 
 class InvalidFieldError(Exception):
@@ -20,21 +22,26 @@ class InvalidFieldError(Exception):
         )
 
 
-def _init_cli_logging(log_level: int | None, cleanup: bool = True):
-    console_level = logging.WARNING
-    console_format = "%(levelname)s: %(message)s"
-    log_file_format = "%(asctime)s.%(msecs)03d\t%(levelname)-8s\t%(message)s"
+def _init_cli_logging(log_arg: str, cleanup: bool = True):
+    CONSOLE_LEVEL = logging.WARNING
+    CONSOLE_FORMAT = "%(levelname)s: %(message)s"
+    LOG_FILE_FORMAT = "%(asctime)s.%(msecs)03d\t%(levelname)-8s\t%(message)s"
+
+    name_to_level = logging.getLevelNamesMapping()
+    log_level = name_to_level.get(log_arg.upper(), None)
+    if log_level is None and LOG_ENVAR in os.environ:
+        log_level = name_to_level.get(os.environ[LOG_ENVAR].upper(), None)
 
     if log_level is None:
         # No log level set by user, just outputting warnings to console
-        logging.basicConfig(level=console_level, format=console_format)
+        logging.basicConfig(level=CONSOLE_LEVEL, format=CONSOLE_FORMAT)
         return
 
     user_log_root = user_app_log_dir()
     if user_log_root is None:
         # User application logging directory could not be determined for this system
         # Only logging to console
-        logging.basicConfig(level=console_level, format=console_format)
+        logging.basicConfig(level=CONSOLE_LEVEL, format=CONSOLE_FORMAT)
         logging.warning(
             "user application log directory could not be determined; logging to console "
             "only"
@@ -46,7 +53,7 @@ def _init_cli_logging(log_level: int | None, cleanup: bool = True):
     try:
         log_home.mkdir(parents=True, exist_ok=True)
     except:
-        logging.basicConfig(level=console_level, format=console_format)
+        logging.basicConfig(level=CONSOLE_LEVEL, format=CONSOLE_FORMAT)
         logging.warning(
             "failed to find or create application log directory '%s'; logging to console "
             "only",
@@ -65,7 +72,7 @@ def _init_cli_logging(log_level: int | None, cleanup: bool = True):
         log_path.touch(exist_ok=True)
         _ = open(log_path, "a")
     except:
-        logging.basicConfig(level=console_level, format=console_format)
+        logging.basicConfig(level=CONSOLE_LEVEL, format=CONSOLE_FORMAT)
         logging.warning(
             "failed to create or write to log file '%s', possibly due to a permission "
             "issue; logging to console only",
@@ -77,16 +84,16 @@ def _init_cli_logging(log_level: int | None, cleanup: bool = True):
     datetime.datetime.now().isoformat
     logging.basicConfig(
         level=log_level,
-        format=log_file_format,
+        format=LOG_FILE_FORMAT,
         datefmt="%Y-%m-%d %H:%M:%S",
-        filename=str(log_path),
+        filename=log_path,
         filemode="a",
     )
 
     # Log to both log file and console, but in different formats
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(console_level)
-    console_handler.setFormatter(logging.Formatter(console_format))
+    console_handler.setLevel(CONSOLE_LEVEL)
+    console_handler.setFormatter(logging.Formatter(CONSOLE_FORMAT))
     logging.getLogger().addHandler(console_handler)
 
     logging.debug("successfully logging at '%s'", str(log_path))
@@ -141,6 +148,7 @@ def _arg_parser() -> ArgumentParser:
         metavar="LEVEL",
         type=str,
         choices=choices,
+        default="",
         help=help,
     )
 
@@ -164,11 +172,14 @@ def _arg_parser() -> ArgumentParser:
     return parser
 
 
-def _main_impl(args: Namespace):
+def run(argv: list[str]):
+    args = _arg_parser().parse_args(argv)
+    _init_cli_logging(args.log)
+
     tm = TableManager()
     csv_path = Path(args.path)
-
     table = tm.get_table(csv_path)
+
     if len(args.fields) > 0:
         # Verify all field names are valid
         invalid_fields = set(args.fields).difference(table.field_names)
@@ -208,25 +219,13 @@ def _main_impl(args: Namespace):
 
 
 def main():
-    args = _arg_parser().parse_args()
-
-    log_arg = None
-    if args.log is not None:
-        log_arg = args.log.upper()
-    elif os.environ.get(LOG_ENVAR, default=None) is not None:
-        log_arg = os.environ[LOG_ENVAR].upper()
-    log_level = logging.getLevelNamesMapping().get(log_arg, None)  # type: ignore
-
-    _init_cli_logging(log_level)
-    logger = logging.getLogger(__name__)
-
     try:
-        _main_impl(args)
+        run(sys.argv[1:])
     except Exception as e:
-        logger.critical("%s: %s", type(e).__name__, str(e))
+        _logger.critical("%s: %s", type(e).__name__, str(e))
         if hasattr(e, "__notes__"):
             for note in e.__notes__:
-                logger.critical(note)
+                _logger.critical(note)
         exit(1)
     exit(0)
 
