@@ -27,6 +27,8 @@
 - need a way to make a distributable application for installing
     - [`pyapp`][pyapp-github] seems like the best option and seems to have some kind of [uv integration][pyapp-uv]
 
+- implement shorthand replacements, i.e. `${option1|option2}`
+
 [pyapp-github]: https://github.com/ofek/pyapp
 [pyapp-uv]: https://ofek.dev/pyapp/latest/config/installation/#uv
 
