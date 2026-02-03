@@ -9,7 +9,13 @@ from typing import Any
 
 from roll_table.parsing.line import MAGIC_FIELDS
 from roll_table.table_manager import TableManager
-from roll_table.utils import LOG_ENVAR, PROG, histogram_str, user_app_log_dir
+from roll_table.utils import (
+    LOG_ENVAR,
+    PROG,
+    histogram_str,
+    try_into_number,
+    user_app_log_dir,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -214,7 +220,15 @@ def run(argv: list[str]):
     if args.histogram:
         for field, histogram in histograms.items():
             print(f"Field: {field}")
-            print(histogram_str(histogram, count_sort=True, legend=True))
+            if type(try_into_number(next(iter(histogram.keys())))) is not str:
+                sort = "key"
+                key_action = try_into_number
+            else:
+                sort = "count"
+                key_action = None
+            print(
+                histogram_str(histogram, sort=sort, legend=True, key_action=key_action)
+            )
             print()
 
 

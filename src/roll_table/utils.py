@@ -1,8 +1,9 @@
 import os
 import platform
 import random
+from math import ceil
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 PROG = "roll-table"
 LOG_ENVAR = "ROLL_TABLE_LOG_LEVEL"
@@ -73,18 +74,36 @@ def roll_dice(num_dice: int, num_sides: int) -> int:
     return sum([random.randint(1, num_sides) for _ in range(num_dice)])
 
 
+def try_into_number(s: str) -> int | float | str:
+    try:
+        return int(s)
+    except ValueError:
+        try:
+            return float(s)
+        except:
+            return s
+
+
 def histogram_str(
-    dataset: dict[Any, int], max_width=100, count_sort=False, sort=False, legend=False
+    dataset: dict[Any, int],
+    max_width: int = 100,
+    sort: str | None = None,
+    legend: bool = False,
+    key_action: Callable[[Any], Any] | None = None,
 ) -> str:
     """Creates a simple text histogram from the `dataset` for easy visualization.
 
     Assumes that the keys of `dataset` are the domain of the data, and the values are the
     corresponding number of occurences. The keys of `dataset` *must* support `str()`.
 
-    If `count_sort` is `True`, the histogram will be created in the sorted order of the
-    occurence counts. If the keys support comparison and `sort` is `True`, then the
-    histogram will be created in the sorted order of the keys. Otherwise, the data will
-    be printed in the order it is received.
+    If `key_action` is not `None`, this function will create a copy of `dataset` whose
+    keys have each been converted by the `Callable` assigned to `key_action`. The
+    resulting keys must *also* support `str()`.
+
+    If `sort` is "count", the histogram will be created in the sorted order of the
+    occurence counts. If the keys of `dataset` support comparison and `sort` is "key",
+    then the histogram will be created in the sorted order of the keys. Otherwise, the
+    data will be printed in the order it is received.
 
     This function will attempt to keep the total width of the histogram text less than or
     equal to `max_width` by adjusting the value of each "pip" on the right side of the
@@ -101,20 +120,24 @@ def histogram_str(
 
     - `dataset`: the dataset to visualize
     - `max_width`: the maximum allowed width for each line of the histogram text
-    - `count_sort`: if `True`, attempts to create the histogram in count-sorted order;
-      overrides `sort` if both are `True`
-    - `sort`: if `True`, attempts to create the histogram in key-sorted order
+    - `sort`: the sort method to use on the histogram; valid values are "count", "key",
+      or `None`
     - `legend`: if `True`, add a line to the histogram indicating the value of each "pip"
+    - `key_action`: a `Callable` to perform on each key in `dataset` before creating the
+      histogram
     """
     PIP = "*"
     PIPLET = "."
 
-    if count_sort:
+    if key_action is not None:
+        dataset = {key_action(k): v for k, v in dataset.items()}
+
+    if sort == "count":
         keys = [item[0] for item in sorted(dataset.items(), key=lambda item: item[1])]
-    elif sort:
+    elif sort == "key":
         try:
             keys = sorted(dataset.keys())
-        except:
+        except TypeError:
             keys = list(dataset.keys())
     else:
         keys = list(dataset.keys())
@@ -125,7 +148,7 @@ def histogram_str(
     right_width = max_width - left_width
 
     max_val = max(dataset.values())
-    pip_val = max([max_val // right_width, 1])
+    pip_val = max([ceil(max_val / right_width), 1])
 
     lines = []
     for key in keys:
