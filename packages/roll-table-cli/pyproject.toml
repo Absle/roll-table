@@ -3,7 +3,7 @@ name = "roll-table-cli"
 version = "0.1.0"
 authors = [{ name = "Anderson Kagel", email = "Anderson.Kagel@gmail.com" }]
 requires-python = ">=3.11"
-dependencies = ["roll-table"]
+dependencies = ["roll-table>=0.1.0"]
 
 [tool.uv.sources]
 roll-table = { workspace = true }
