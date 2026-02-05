@@ -239,7 +239,9 @@ def main():
         _logger.critical("%s: %s", type(e).__name__, str(e))
         if hasattr(e, "__notes__"):
             for note in e.__notes__:
-                _logger.critical(note)
+                _logger.critical(note, stack_info=True)
+        if _logger.getEffectiveLevel() <= logging.DEBUG:
+            raise
         exit(1)
     exit(0)
 
