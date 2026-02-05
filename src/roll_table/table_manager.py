@@ -26,7 +26,7 @@ class TableManager:
     def resolve(
         self, rep_str: ReplacementString, depth_limit: int = DEFAULT_DEPTH
     ) -> str:
-        return rep_str._resolve(self, depth_limit)
+        return rep_str.resolve(self, depth_limit)
 
     def roll(self, table_path: Path) -> dict[str, str | ReplacementString]:
         return self.get_table(table_path).roll()

@@ -10,8 +10,6 @@
 
 ### Backend
 
-- dice roll column: put expression in header of leftmost column and number range in the rows to affect how rows are chosen
-
 - update logging to use `LogAdapter`
     - use to make `<filepath>:<lineno>: <while>: <msg>; <effect>...` style logs have cleaner code
     - relevant [documentation][logger-adapter-doc] and [cookbook][logger-adapter-cookbook]
@@ -65,6 +63,7 @@
 
 ## **DONE**
 
+- ~~dice roll column: put expression in header of leftmost column and number range in the rows to affect how rows are chosen~~
 - ~~Breakout CLI into a separate file and clean up `roll-table/__init__.py` for use as a library~~
 - ~~add a `--histogram` option to CLI~~
     - ~~print a histogram for each field, tracking its occurences~~

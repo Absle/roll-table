@@ -164,17 +164,21 @@ class DiceArithExpr(Expression):
             pure_arithmetic = pure_arithmetic.replace(to_replace, str(roll), 1)
         return pure_arithmetic
 
-    def _resolve(self) -> str:
+    def resolve(self) -> str:
+        self._resolved_expr = str(self.resolve_number())
+        return self._resolved_expr
+
+    def resolve_int(self) -> int:
+        return int(self.resolve_number())
+
+    def resolve_number(self) -> int | float:
         pure_arithmetic = DiceArithExpr._resolve_dice_rolls(self._raw_expr)
         tree = ast.parse(pure_arithmetic, mode="eval")
         pseudofile = f"<{repr(self)}>"
 
         # We can safely use eval directly here because we verified the expression is only
         # dice rolls and arithmetic during __init__
-        self._resolved_expr = str(
-            eval(compile(tree, pseudofile, "eval"), {"__builtins__": {}})
-        )
-        return self._resolved_expr
+        return eval(compile(tree, pseudofile, "eval"), {"__builtins__": {}})
 
 
 class RefExpr(Expression):
@@ -222,7 +226,7 @@ class RefExpr(Expression):
                 self._field_name = field_name
         _logger.debug("field_name = '%s'", str(self._field_name))
 
-    def _resolve(
+    def resolve(
         self, table_manager: "TableManager", prev_roll: dict | None
     ) -> tuple["ReplacementString | str", dict | None]:
         if self._alias == Syntax.PREV_REF.value:
@@ -336,7 +340,7 @@ class ReplacementString:
         else:
             return orig_str
 
-    def _resolve(self, table_manager: "TableManager", depth_limit: int) -> str:
+    def resolve(self, table_manager: "TableManager", depth_limit: int) -> str:
         if _logger.getEffectiveLevel() <= logging.INFO:
             # This could be an expensive join that logger can't handle lazily
             _logger.info(
@@ -373,10 +377,10 @@ class ReplacementString:
                 if type(elem) is str:
                     next_elements.append(elem)
                 elif type(elem) is DiceArithExpr:
-                    next_elements.append(elem._resolve())
+                    next_elements.append(elem.resolve())
 
                 elif type(elem) is RefExpr:
-                    resolved, prev_roll = elem._resolve(table_manager, prev_roll)
+                    resolved, prev_roll = elem.resolve(table_manager, prev_roll)
 
                     if type(resolved) is ReplacementString:
                         next_elements += [

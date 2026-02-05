@@ -25,17 +25,26 @@ def consume(
     return string, None, ""
 
 
-def _parsing_warning(
-    logger: Logger, csv_path: Path, line: int, when: str, msg: str | Exception, *args
+def parse_warning(
+    logger: Logger,
+    csv_path: Path,
+    line: int,
+    when: str,
+    msg: str | Exception,
+    *args,
+    effect=None,
 ):
     if logger.getEffectiveLevel() <= logging.WARNING:
         csv_path = csv_path.relative_to(Path.cwd())
         if issubclass(type(msg), Exception):
             msg = str(msg)
-        if len(args) > 0:
-            msg = msg % args  # type: ignore
+        if type(msg) is str and len(args) > 0:
+            msg = msg % args
 
-        logger.warning("%s:%d: while %s: %s, skipping...", csv_path, line, when, msg)
+        if effect is None:
+            effect = "skipping"
+
+        logger.warning("%s:%d: while %s: %s, %s...", csv_path, line, when, msg, effect)
 
 
 def directive_parse_warning(
@@ -47,7 +56,7 @@ def directive_parse_warning(
     *args,
 ):
     when = f"parsing directive '{directive}'"
-    _parsing_warning(logger, csv_path, line, when, msg, *args)
+    parse_warning(logger, csv_path, line, when, msg, *args)
 
 
 def expression_parse_warning(
@@ -59,11 +68,26 @@ def expression_parse_warning(
     *args,
 ):
     when = f"parsing expression '{expression}'"
-    _parsing_warning(logger, csv_path, line, when, msg, *args)
+    parse_warning(logger, csv_path, line, when, msg, *args)
 
 
 def expression_resolve_warning(
     logger, expression: "Expression", msg: str | Exception, *args
 ):
     when = f"resolving expression '{expression.raw_expr}'"
-    _parsing_warning(logger, expression.csv_path, expression.line, when, msg, *args)
+    parse_warning(logger, expression.csv_path, expression.line, when, msg, *args)
+
+
+def roll_column_parse_warning(
+    logger: Logger,
+    csv_path: Path,
+    line: int,
+    range_str: str,
+    msg: str,
+    *args,
+    effect: str | None = None,
+):
+    when = f"parsing range string '{range_str}'"
+    if effect is None:
+        effect = "parse column will be ignored"
+    parse_warning(logger, csv_path, line, when, msg, *args, effect=effect)
