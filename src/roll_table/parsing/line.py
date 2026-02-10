@@ -3,9 +3,10 @@ import re
 from enum import StrEnum
 from pathlib import Path
 
-from roll_table.parsing import roll_column_parse_warning
+from roll_table.logger_adapter import PathLineLogAdapter, extras
 
-_logger = logging.getLogger(__name__)
+_logger = PathLineLogAdapter(logging.getLogger(__name__))
+
 
 ROLL_RANGE_RE = re.compile(r"(\d+)(-(\d+))?")
 
@@ -25,7 +26,10 @@ class Syntax(StrEnum):
 
 
 def parse_roll_range(range_str: str, csv_path: Path, line: int) -> range | None:
-    _logger.info("parsing range '%s'", range_str)
+    _logger.info(
+        "parsing range '%s'", range_str, extra=extras(path=csv_path, line=line)
+    )
+
     # Remove all whitespace
     range_str = "".join(range_str.split())
     fullmatch = ROLL_RANGE_RE.fullmatch(range_str)
@@ -38,5 +42,14 @@ def parse_roll_range(range_str: str, csv_path: Path, line: int) -> range | None:
         else:
             return range(start, start + 1)
     else:
-        roll_column_parse_warning(_logger, csv_path, line, range_str, "failed to match")
+        _logger.warning(
+            "range does not match expected syntax",
+            extra=extras(
+                path=csv_path,
+                line=line,
+                when="parsing range '%s'",
+                effect="dice roll column will be removed and ignored",
+                exargs=range_str,
+            ),
+        )
         return None

@@ -7,6 +7,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 from typing import Any
 
+from roll_table.logger_adapter import PathLineLogAdapter
 from roll_table.parsing.line import MAGIC_FIELDS
 from roll_table.table_manager import TableManager
 from roll_table.utils import (
@@ -17,7 +18,7 @@ from roll_table.utils import (
     user_app_log_dir,
 )
 
-_logger = logging.getLogger(__name__)
+_logger = PathLineLogAdapter(logging.getLogger(__name__))
 
 
 class InvalidFieldError(Exception):

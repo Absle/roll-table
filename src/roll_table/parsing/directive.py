@@ -2,11 +2,12 @@ import logging
 from enum import StrEnum, auto
 from pathlib import Path
 
+from roll_table.logger_adapter import PathLineLogAdapter
 from roll_table.parsing import consume, line
 
 DIRECTIVE_START = line.Syntax.DIRECTIVE.value
 
-_logger = logging.getLogger(__name__)
+_logger = PathLineLogAdapter(logging.getLogger(__name__))
 
 
 class DirectiveParseError(Exception):

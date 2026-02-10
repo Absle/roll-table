@@ -20,6 +20,11 @@
 
 - filtering api for `TableManager.roll` and a new `TableManager.filter`
 
+- post roll functions (e.g. `${table[field].upper}`, `${table[field].lower}`, etc)
+
+- matrix rolling? (i.e. random row *and* column?)
+    - super easy to do in the roll API, just use a `matrix` flag param?
+
 [logger-adapter-doc]: <https://docs.python.org/3/library/logging.html#logging.LoggerAdapter>
 [logger-adapter-cookbook]: <https://docs.python.org/3/howto/logging-cookbook.html#adding-contextual-information-to-your-logging-output>
 

@@ -5,11 +5,7 @@ from pathlib import Path
 from random import choice
 from typing import Any
 
-from roll_table.parsing import (
-    directive_parse_warning,
-    parse_warning,
-    roll_column_parse_warning,
-)
+from roll_table.logger_adapter import PathLineLogAdapter, extras
 from roll_table.parsing.directive import (
     DirectiveParseError,
     IncludeDirective,
@@ -31,7 +27,7 @@ _ROLL_MIN_DEF = 2**31 - 1
 # Arbitrary small number, minimum of a 32-bit signed integer
 _ROLL_MAX_DEF = -(2**31)
 
-_logger = logging.getLogger(__name__)
+_logger = PathLineLogAdapter(logging.getLogger(__name__))
 
 
 class Table:
@@ -48,15 +44,15 @@ class Table:
     _roll_max: int
 
     def __init__(self, filepath: Path):
-        _logger.info("loading table '%s'", filepath.absolute().relative_to(Path.cwd()))
-
         # Put in default/known values first
-        self._path = Path(filepath).absolute()
+        self._path = filepath.absolute()
         self._relative_path = self._path.relative_to(Path.cwd())
         self._roll_expr = None
         self._roll_to_index = dict()
         self._roll_min = _ROLL_MIN_DEF
         self._roll_max = _ROLL_MAX_DEF
+
+        _logger.info("loading table", extra=extras(path=self._relative_path))
 
         with open(self._path) as csv_file:
             raw_csv = csv_file.readlines()
@@ -75,34 +71,39 @@ class Table:
             try:
                 directive = parse_directive(directive_str, self.directory)
             except DirectiveParseError as e:
-                directive_parse_warning(_logger, self._path, line, directive_str, e)
+                _logger.directive_parse_warning(
+                    e,
+                    self._relative_path,
+                    line,
+                    directive_str,
+                )
                 continue
 
             if type(directive) is IncludeDirective:
                 if directive.alias in namespace:
                     # Skip includes with alias collisions
-                    directive_parse_warning(
-                        _logger,
-                        self._path,
+                    _logger.directive_parse_warning(
+                        "alias '%s' has already been included",
+                        self._relative_path,
                         line,
                         directive_str,
-                        "alias '%s' has already been included",
                         directive.alias,
                     )
                     continue
+
                 _logger.info(
                     "including file '%s' as '%s'",
-                    directive.path.relative_to(Path.cwd()),
+                    str(directive.path.relative_to(Path.cwd())),
                     directive.alias,
+                    extra=extras(path=self._relative_path),
                 )
                 namespace[directive.alias] = directive.path
             else:
-                directive_parse_warning(
-                    _logger,
-                    self._path,
+                _logger.directive_parse_warning(
+                    "unimplemented directive '%s'",
+                    self._relative_path,
                     line,
                     directive_str,
-                    "unimplemented directive '%s'",
                     directive.kind.value,
                 )
 
@@ -134,7 +135,11 @@ class Table:
         if leftmost.startswith(ExprSyntax.REPLACE_OPEN.value) and leftmost.endswith(
             ExprSyntax.REPLACE_CLOSE.value
         ):
-            _logger.info("parsing dice roll column expression '%s'", leftmost)
+            _logger.info(
+                "parsing dice roll column expression '%s'",
+                leftmost,
+                extra=extras(path=self._relative_path),
+            )
 
             # Regardless of if it's valid or not, we need to start peeling the dice roll
             # column from the table's field names and rows
@@ -147,13 +152,15 @@ class Table:
             try:
                 self._roll_expr = DiceArithExpr(raw_expr, self._path, header_line)
             except ExpressionParseError as e:
-                parse_warning(
-                    logger=_logger,
-                    csv_path=self._path,
-                    line=header_line,
-                    when=f"parsing roll column expression '{leftmost}'",
-                    msg=e,
-                    effect="parse column will be ignored",
+                _logger.warning(
+                    str(e),
+                    extra=extras(
+                        path=self._relative_path,
+                        line=header_line,
+                        when="parsing roll column expression '%s'",
+                        effect="parse column will be stripped and ignored",
+                        exargs=leftmost,
+                    ),
                 )
                 self._roll_expr = False
 
@@ -174,14 +181,16 @@ class Table:
                 if roll_range is not None:
                     for roll in roll_range:
                         if roll in self._roll_to_index:
-                            roll_column_parse_warning(
-                                _logger,
-                                self._path,
-                                line,
-                                range_str,
+                            _logger.warning(
                                 "found roll collision %d",
                                 roll,
-                                effect="using existing entry",
+                                extra=extras(
+                                    path=self._relative_path,
+                                    line=line,
+                                    when="parsing range '%s'",
+                                    effect="using existing roll entry",
+                                    exargs=range_str,
+                                ),
                             )
                             continue
                         self._roll_to_index[roll] = index
@@ -227,7 +236,7 @@ class Table:
         return copy.deepcopy(self._path)
 
     def at_index(
-        self, index: int, default: Any = None
+        self, index: int, default: Any | None = None
     ) -> dict[str, str | ReplacementString] | Any:
         if index < 0 or index >= len(self._rows):
             return default
@@ -237,29 +246,35 @@ class Table:
     def _at_roll(self, roll: int) -> dict[str, str | ReplacementString]:
         if roll in self._roll_to_index:
             index = self._roll_to_index[roll]
+
         elif roll < self._roll_min:
             _logger.warning(
-                "%s: rolled below minimum %d: %d; using minimum...",
-                self._relative_path,
-                self._roll_min,
+                "rolled %d, which is less than the lowest table value of %d",
                 roll,
+                self._roll_min,
+                extra=extras(path=self._relative_path, effect="using lowest value"),
             )
             index = self._roll_to_index[self._roll_min]
+
         elif roll > self._roll_max:
             _logger.warning(
-                "%s: rolled above maximum %d: %d; using maximum...",
-                self._relative_path,
-                self._roll_max,
+                "rolled %d, which is greater than the highest table value of %d",
                 roll,
+                self._roll_max,
+                extra=extras(path=self._relative_path, effect="using highest value"),
             )
             index = self._roll_to_index[self._roll_max]
+
         else:
             index = 0
             _logger.warning(
-                "%s: rolled number not covered in dice roll column: %d; using index %d",
-                self._relative_path,
+                "rolled %d, which is not included in the table",
                 roll,
-                index,
+                extra=extras(
+                    path=self._relative_path,
+                    effect="using default index %d",
+                    exargs=index,
+                ),
             )
         return self.at_index(index)
 
@@ -271,12 +286,8 @@ class Table:
             rolled = choice(self._rows)
 
         line = int(rolled.get(MagicField.LINE.value, "-1"))  # type: ignore
-        _logger.info("rolled %s:%d", self._relative_path, line)
-        _logger.debug(
-            "rolled %s on '%s'",
-            repr(rolled),
-            self._relative_path,
-        )
+        _logger.info("rolled line %d", line, extra=extras(path=self._relative_path))
+        _logger.debug("%s", repr(rolled), extra=extras(path=self._relative_path))
         return copy.deepcopy(rolled)
 
     def to_json(self) -> str:

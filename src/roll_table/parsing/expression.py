@@ -1,18 +1,16 @@
 import ast
+import copy
 import logging
 import re
 from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from roll_table.parsing import (
-    consume,
-    expression_parse_warning,
-    expression_resolve_warning,
-)
+from roll_table.logger_adapter import PathLineLogAdapter, extras
+from roll_table.parsing import consume
 from roll_table.utils import roll_dice
 
-_logger = logging.getLogger(__name__)
+_logger = PathLineLogAdapter(logging.getLogger(__name__))
 
 if TYPE_CHECKING:
     # Have to do this to avoid circular import during an actual run
@@ -49,7 +47,7 @@ class Expression:
     def __init__(self, raw_expr: str, csv_path: Path, line: int):
         self._raw_expr = raw_expr
         self._resolved_expr = None
-        self._csv_path = csv_path
+        self._csv_path = csv_path.absolute()
         self._line = line
 
     def __repr__(self) -> str:
@@ -67,16 +65,16 @@ class Expression:
             return f"{open}{self._raw_expr}{close}"
 
     @property
+    def csv_path(self) -> Path:
+        return copy.deepcopy(self._csv_path)
+
+    @property
+    def line(self) -> int:
+        return self._line
+
+    @property
     def is_resolved(self) -> bool:
         return self._resolved_expr is not None
-
-    @property
-    def csv_path(self):
-        return self._csv_path
-
-    @property
-    def line(self):
-        return self._line
 
     @property
     def raw_expr(self):
@@ -92,7 +90,11 @@ class Expression:
     ) -> "Expression":
         if len(raw_expr) == 0:
             raise ExpressionParseError("empty expressions are not allowed")
-        _logger.info("parsing expression '%s'", raw_expr)
+        _logger.info(
+            "parsing expression '%s'",
+            raw_expr,
+            extra=extras(path=csv_path, line=line),
+        )
 
         if raw_expr[0] in ARITH_STARTERS:
             expression = DiceArithExpr(raw_expr, csv_path, line)
@@ -183,7 +185,7 @@ class DiceArithExpr(Expression):
 
 class RefExpr(Expression):
     _alias: str
-    _path: Path | None
+    _ref_path: Path | None
     _field_name: str | None
 
     def __init__(self, raw_expr: str, namespace: dict[str, Path], csv_path, line):
@@ -196,22 +198,22 @@ class RefExpr(Expression):
             raise ExpressionParseError("empty aliases are not allowed")
         elif alias not in namespace and alias != Syntax.PREV_REF.value:
             raise ExpressionParseError(f"could not resolve alias '{alias}'")
-
         self._alias = alias
         _logger.debug("alias = '%s'", self._alias)
+
         if alias == Syntax.PREV_REF.value:
-            self._path = None
+            self._ref_path = None
         else:
-            self._path = namespace[alias]
-            if not self._path.is_file():
+            self._ref_path = namespace[alias]
+            if not self._ref_path.is_file():
                 # Since include directives already check if the file exists, this should
                 # be unreachable unless the file is deleted between when the include is
                 # processed and the expression is parsed
                 raise ExpressionParseError(
-                    f"alias '{alias}' resolved to path '{self._path}', but that path is "
+                    f"alias '{alias}' resolved to path '{self._ref_path}', but that path is "
                     "not a valid file"
                 )
-        _logger.debug("path = '%s'", str(self._path))
+        _logger.debug("path = '%s'", str(self._ref_path))
 
         if separator is None:
             self._field_name = None
@@ -231,26 +233,29 @@ class RefExpr(Expression):
     ) -> tuple["ReplacementString | str", dict | None]:
         if self._alias == Syntax.PREV_REF.value:
             if prev_roll is None:
-                expression_resolve_warning(
-                    _logger,
-                    self,
+                _logger.expression_resolve_warning(
                     "reference expression with '%s' can not be the first reference",
+                    self._csv_path,
+                    self._line,
+                    self.raw_expr,
                     Syntax.PREV_REF.value,
                 )
                 return self.raw_expr, None
             row = prev_roll
+
         else:
             # self._path is only None if _alias is a PREV_REF
-            row = table_manager.roll(self._path)  # type: ignore
+            row = table_manager.roll(self._ref_path)  # type: ignore
 
         if self._field_name is not None:
             if self._field_name in row:
                 value = row[self._field_name]
             else:
-                expression_resolve_warning(
-                    _logger,
-                    self,
-                    "field '%s' does not exist in '%s'",
+                _logger.expression_resolve_warning(
+                    "field '%s' does not in exist in '%s'",
+                    self._csv_path,
+                    self._line,
+                    self.raw_expr,
                     self._field_name,
                     self._alias,
                 )
@@ -267,10 +272,14 @@ class RefExpr(Expression):
 class ReplacementString:
     _original_elements: list[str | Expression]
     _resolved_elements: list[str | Expression] | None
+    _csv_path: Path
+    _line: int
 
-    def __init__(self, elements: list[str | Expression]):
+    def __init__(self, elements: list[str | Expression], csv_path: Path, line: int):
         self._original_elements = elements
         self._resolved_elements = None
+        self._csv_path = csv_path.absolute()
+        self._line = line
 
     def __repr__(self) -> str:
         typename = type(self).__name__
@@ -289,7 +298,11 @@ class ReplacementString:
     ) -> "ReplacementString | str":
         if Syntax.REPLACE_OPEN.value not in raw_str:
             return raw_str
-        _logger.info("parsing replacement string '%s'", raw_str)
+        _logger.info(
+            "parsing replacement string '%s'",
+            raw_str,
+            extra=extras(path=csv_path, line=line),
+        )
 
         orig_str = raw_str
         elements = []
@@ -306,13 +319,12 @@ class ReplacementString:
             if separator is None:
                 # Reached end of raw_str without closing the expression
                 # Treat it as a plain string and break early
-                expression_parse_warning(
-                    _logger,
+                _logger.expression_parse_warning(
+                    "incomplete expression, missing '%s'",
                     csv_path,
                     line,
                     Syntax.REPLACE_OPEN.value + raw_expr,
-                    "incomplete expression, missing '%s'",
-                    Syntax.REPLACE_CLOSE.value,
+                    Syntax.REPLACE_CLOSE,
                 )
                 elements.append(Syntax.REPLACE_OPEN.value + raw_expr)
                 break
@@ -324,19 +336,13 @@ class ReplacementString:
                 orig_expr = (
                     Syntax.REPLACE_OPEN.value + raw_expr + Syntax.REPLACE_CLOSE.value
                 )
-                expression_parse_warning(
-                    _logger,
-                    csv_path,
-                    line,
-                    orig_expr,
-                    e,
-                )
+                _logger.expression_parse_warning(e, csv_path, line, orig_expr)
                 elements.append(orig_expr)
 
         if len(elements) > 0 and any(
             [issubclass(type(elem), Expression) for elem in elements]
         ):
-            return ReplacementString(elements)
+            return ReplacementString(elements, csv_path, line)
         else:
             return orig_str
 
@@ -351,12 +357,14 @@ class ReplacementString:
                         for elem in self._original_elements
                     ]
                 ),
+                extra=extras(path=self._csv_path, line=self._line),
             )
 
         current_elements = self._original_elements
         prev_roll: dict | None = None
         for step in range(0, depth_limit):
             if _logger.getEffectiveLevel() <= logging.DEBUG:
+                # This could be an expensive join that logger can't handle lazily
                 _logger.debug(
                     "resolve step %d: '%s'",
                     step,
@@ -376,6 +384,7 @@ class ReplacementString:
             for elem in current_elements:
                 if type(elem) is str:
                     next_elements.append(elem)
+
                 elif type(elem) is DiceArithExpr:
                     next_elements.append(elem.resolve())
 
@@ -390,10 +399,11 @@ class ReplacementString:
                         next_elements.append(resolved)
                 else:
                     # Should be unreachable
-                    expression_resolve_warning(
-                        _logger,
-                        elem,  # type: ignore
+                    _logger.expression_resolve_warning(
                         "unimplemented expression type '%s'",
+                        elem.csv_path,  # type: ignore
+                        elem.line,  # type: ignore
+                        elem.raw_expr,  # type: ignore
                         type(elem).__name__,
                     )
                     next_elements.append(elem.raw_expr)  # type: ignore
@@ -402,6 +412,7 @@ class ReplacementString:
 
         resolved = "".join([str(e) for e in current_elements])
         _logger.info("resolved to '%s'", resolved)
+
         return resolved
 
 
