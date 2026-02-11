@@ -115,19 +115,14 @@ class Table:
         ]
         header_line = line_rows[0][0]
 
-        raw_table = [
-            # Add the index and original CSV line number as the last elements of each
-            # data line. If it's the header, assign the new columns a magic field name
-            (
-                row.strip() + f",{i-1},{line}\n"
-                if i != 0
-                else row.strip() + f",{MagicField.INDEX},{MagicField.LINE}\n"
-            )
-            for i, (line, row) in enumerate(line_rows)
-        ]
+        raw_table = [row.strip() for _, row in line_rows]
 
-        dict_reader = csv.DictReader(raw_table)
+        dict_reader = csv.DictReader(
+            raw_table, restkey=MagicField.REST.value, restval=""
+        )
         self._field_names = list(dict_reader.fieldnames)  # type: ignore
+        for field in MagicField:
+            self._field_names.append(field.value)
 
         # Attempt to parse a roll column expression from header
         leftmost = self._field_names[0].strip()
@@ -165,16 +160,19 @@ class Table:
                 self._roll_expr = False
 
         rows = list(dict_reader)
-        for index, row in enumerate(rows):
-            line = int(row.get(MagicField.LINE.value, "-1"))
+        lines = [line for line, _ in line_rows]
+        for index, (line, row) in enumerate(zip(lines[1:], rows)):
+            # Add metadata columns to each row
+            row[MagicField.INDEX.value] = index
+            row[MagicField.LINE.value] = line
+
             if self._roll_expr is False:
                 # Parsing the dice roll column failed at some point, removing the column
                 row.pop(orig_roll_key)
 
             elif self._roll_expr is not None:
-                # If there's a roll expression for this table, we need to process those number
+                # If there's a roll expression for this table, we need to process those
                 # numbers for each table
-                # orig_roll_field should always be bound if self._roll_expr is not None
                 range_str = row.pop(orig_roll_key)
                 roll_range = parse_roll_range(range_str, self._path, line)
 
@@ -205,14 +203,13 @@ class Table:
                 else:
                     # Dice roll column parse has failed, need to start removing the column
                     # reset everything back to its default
-                    # TODO: it feels like there should be something else to do here?
                     self._roll_expr = False
                     self._roll_to_index = dict()
                     self._roll_min = _ROLL_MIN_DEF
                     self._roll_max = _ROLL_MAX_DEF
 
             for field_name in row.keys():
-                if field_name in MAGIC_FIELDS:
+                if field_name in MAGIC_FIELDS or row[field_name] is None:
                     continue
                 row[field_name] = parse_replacement_string(
                     row[field_name], namespace, self._path, line
@@ -293,28 +290,27 @@ class Table:
     def to_json(self) -> str:
         lines = ["["]
         for i, row in enumerate(self._rows):
-            lines.append("    {")
+            lines.append("  {")
             for j, (k, v) in enumerate(row.items()):
                 if type(v) is ReplacementString:
                     v_str = repr(v)
                 else:
                     v_str = v
                 if j == len(row) - 1:
-                    line = f'        "{k}": "{v_str}"'
+                    line = f'    "{k}": "{v_str}"'
                 else:
-                    line = f'        "{k}": "{v_str}",'
+                    line = f'    "{k}": "{v_str}",'
                 # Handle windows paths
                 lines.append(line.replace("\\", "\\\\"))
 
             if i == len(self._rows) - 1:
-                lines.append("    }")
+                lines.append("  }")
             else:
-                lines.append("    },")
+                lines.append("  },")
         lines.append("]")
         return "\n".join(lines)
 
     def write_postprocess_csv(self, write_obj):
         writer = csv.DictWriter(write_obj, fieldnames=self._field_names)
         writer.writeheader()
-        for row in self._rows:
-            writer.writerow(row)
+        writer.writerows(self._rows)

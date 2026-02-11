@@ -12,9 +12,9 @@ ROLL_RANGE_RE = re.compile(r"(\d+)(-(\d+))?")
 
 
 class MagicField(StrEnum):
+    REST = "__rest__"
     INDEX = "__index__"
     LINE = "__line__"
-    ROLL = "__roll__"
 
 
 MAGIC_FIELDS = {field.value for field in MagicField}
