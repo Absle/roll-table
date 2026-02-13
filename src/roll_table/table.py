@@ -21,6 +21,7 @@ from roll_table.parsing.expression import parse_replacement_string
 from roll_table.parsing.line import MAGIC_FIELDS, MagicField
 from roll_table.parsing.line import Syntax as LineSyntax
 from roll_table.parsing.line import parse_roll_range
+from roll_table.utils import columnate
 
 # Arbitrary large number, maximum of a 32-bit signed integer
 _ROLL_MIN_DEF = 2**31 - 1
@@ -274,6 +275,12 @@ class Table:
                 ),
             )
         return self.at_index(index)
+
+    def columnate(self, md_style: bool = False) -> str:
+        rows = [[r.get(f, "") for f in self._field_names] for r in self._rows]
+        return columnate(
+            [self._field_names] + rows, has_headers=True, md_style=md_style
+        )
 
     def roll(self) -> dict[str, str | ReplacementString]:
         if type(self._roll_expr) is DiceArithExpr:

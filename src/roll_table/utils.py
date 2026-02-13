@@ -169,3 +169,46 @@ def histogram_str(
             f"{min(values)}; max = {max(values)}"
         )
     return "\n".join(lines)
+
+
+def columnate(
+    rows: list[list], has_headers: bool = False, md_style: bool = False
+) -> str:
+    """Format items within `rows` into fixed-width columns.
+
+    # Parameters
+
+    - `rows`
+        The list of lists to be columnated.
+    - `has_headers`
+        If `True`, treat the first row as a "header" for the rest of the rows by
+        inserting a row of fixed-width '-' separators after the first row.
+    - `md_style`
+        If `True`, treat the first row as a "header" for the rest of the rows and format
+        the output in the style of a Markdown table; supersedes `has_headers`.
+    """
+    string_rows = [[str(field) for field in row] for row in rows]
+
+    # Pad all rows to have the same number of columns
+    num_columns = max([len(row) for row in rows])
+    for row in string_rows:
+        if len(row) < num_columns:
+            padding = num_columns - len(row)
+            row.extend([""] * padding)
+
+    transposed = [list(row) for row in zip(*string_rows)]
+    column_widths = [max([len(item) for item in row]) for row in transposed]
+
+    if has_headers or md_style:
+        sep_row = ["-" * max(width, 3) for width in column_widths]
+        string_rows.insert(1, sep_row)
+
+    sep = " | " if md_style else "  "
+    string_rows = [
+        sep.join([f"{field:{column_widths[i]}}" for i, field in enumerate(row)])
+        for row in string_rows
+    ]
+
+    if md_style:
+        string_rows = ["| " + row + " |" for row in string_rows]
+    return "\n".join(string_rows)
