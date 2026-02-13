@@ -137,7 +137,6 @@ def _arg_parser() -> ArgumentParser:
     parser = ArgumentParser(prog=PROG)
 
     mutex_group = parser.add_mutually_exclusive_group()
-
     mutex_group.add_argument(
         "-c",
         "--column",
@@ -146,51 +145,47 @@ def _arg_parser() -> ArgumentParser:
     )
 
     mutex_group.add_argument(
+        "-m",
         "--markdown",
         action="store_true",
-        help="print output in fixed-width columns using Markdown table syntax",
+        help="print output in Markdown table format",
     )
 
     mutex_group.add_argument(
+        "-g",
         "--histogram",
         action="store_true",
         help=(
             "print a histogram for each specified field displaying the number of "
-            "occurences of each value of the field; recommended to be used with large "
-            "values of the --number option"
+            "occurences of each value of that field"
         ),
-    )
-
-    choices = ["debug", "info", "warning", "error", "critical"]
-    help = (
-        f"enable detailed logging at level {', '.join(choices[:-1])}, or {choices[-1]}; "
-        f"overrides environment variable ${LOG_ENVAR}"
-    )
-    parser.add_argument(
-        "--log",
-        metavar="LEVEL",
-        type=str,
-        choices=choices,
-        default="",
-        help=help,
     )
 
     parser.add_argument(
         "-n",
         "--number",
-        metavar="N",
+        metavar="i",
         type=int,
         default=1,
-        help="repeat the specified roll N times",
+        help="repeat the specified roll i times",
     )
 
-    parser.add_argument("path", metavar="PATH", type=str, help="path to csv file")
+    parser.add_argument(
+        "--log",
+        metavar="level",
+        type=str,
+        choices=["debug", "info", "warning", "error", "critical"],
+        default="",
+        help=f"enable detailed logging at the given level; overrides envar {LOG_ENVAR}",
+    )
+
+    parser.add_argument("path", metavar="path", type=str, help="path to csv file")
 
     parser.add_argument(
         "fields",
-        metavar="FIELD",
         nargs="*",
-        help="space-separated list of field names to print (case-sensitive)",
+        default=[],
+        help="space-separated list of field names to print; case-sensitive",
     )
     return parser
 

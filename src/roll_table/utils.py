@@ -5,9 +5,6 @@ from math import ceil
 from pathlib import Path
 from typing import Any, Callable
 
-PROG = "roll-table"
-LOG_ENVAR = "ROLL_TABLE_LOG_LEVEL"
-
 
 def user_app_log_dir() -> Path | None:
     """Find the user application log directory and return an absolute path to it.
@@ -211,4 +208,7 @@ def columnate(
 
     if md_style:
         string_rows = ["| " + row + " |" for row in string_rows]
+
+    # Append empty string to ensure joined output ends in a newline
+    string_rows.append("")
     return "\n".join(string_rows)
