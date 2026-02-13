@@ -13,6 +13,7 @@ from roll_table.table_manager import TableManager
 from roll_table.utils import (
     LOG_ENVAR,
     PROG,
+    columnate,
     histogram_str,
     try_into_number,
     user_app_log_dir,
@@ -135,7 +136,22 @@ def _init_cli_logging(log_arg: str, cleanup: bool = True):
 def _arg_parser() -> ArgumentParser:
     parser = ArgumentParser(prog=PROG)
 
-    parser.add_argument(
+    mutex_group = parser.add_mutually_exclusive_group()
+
+    mutex_group.add_argument(
+        "-c",
+        "--column",
+        action="store_true",
+        help="print output in fixed-width columns",
+    )
+
+    mutex_group.add_argument(
+        "--markdown",
+        action="store_true",
+        help="print output in fixed-width columns using Markdown table syntax",
+    )
+
+    mutex_group.add_argument(
         "--histogram",
         action="store_true",
         help=(
@@ -179,7 +195,60 @@ def _arg_parser() -> ArgumentParser:
     return parser
 
 
-def run(argv: list[str]):
+def _columnated_output(
+    rolled_rows: list[dict[str, str]], fields: list[str], md_style: bool = False
+) -> str:
+    rows = [fields] + [[row.get(field, "") for field in fields] for row in rolled_rows]
+    return columnate(rows, has_headers=True, md_style=md_style)
+
+
+def _default_output(rolled_rows: list[dict[str, str]], fields: list[str]) -> str:
+    max_length = max([len(field) for field in fields])
+    lines = []
+    for row in rolled_rows:
+        for field in fields:
+            if len(fields) > 1:
+                lines.append(f"{field: >{max_length}}: {row[field]}")
+            else:
+                lines.append(f"{row[field]}")
+
+        if len(fields) > 1:
+            # Print a blank line between each roll if we're printing multiple fields
+            lines.append("")
+    return "\n".join(lines)
+
+
+def _histogram_output(rolled_rows: list[dict[str, str]], fields: list[str]) -> str:
+    histograms: dict[str, dict[Any, int]] = {}
+    for row in rolled_rows:
+        for field in fields:
+            if field not in histograms:
+                histograms[field] = {}
+            if row[field] not in histograms[field]:
+                histograms[field][row[field]] = 1
+            else:
+                histograms[field][row[field]] += 1
+
+    lines = []
+    for field, histogram in histograms.items():
+        lines.append(f"Field: {field}")
+        if type(try_into_number(next(iter(histogram.keys())))) is not str:
+            sort = "key"
+            key_action = try_into_number
+        else:
+            sort = "count"
+            key_action = None
+
+        lines.append(
+            histogram_str(histogram, sort=sort, legend=True, key_action=key_action)
+        )
+        if len(fields) > 1:
+            # Print a blank line between each histogram if we're printing multiple
+            lines.append("")
+    return "\n".join(lines)
+
+
+def run(argv: list[str]) -> str:
     args = _arg_parser().parse_args(argv)
     _init_cli_logging(args.log)
 
@@ -195,47 +264,24 @@ def run(argv: list[str]):
         fields = args.fields
     else:
         fields = [field for field in table.field_names if field not in MAGIC_FIELDS]
-    max_length = max([len(field) for field in fields])
 
-    histograms: dict[str, dict[Any, int]] = {}
+    rolled_rows = []
     for _ in range(args.number):
-        row = tm.roll_resolve(csv_path)
-        if not args.histogram:
-            for field in fields:
-                if len(fields) > 1:
-                    print(f"{field: >{max_length}}: {row[field]}")
-                else:
-                    print(f"{row[field]}")
+        rolled_rows.append(tm.roll_resolve(csv_path))
 
-            if len(fields) > 1:
-                # Print a blank line between each roll if we're printing multiple fields
-                print()
-        else:
-            for field in fields:
-                if field not in histograms:
-                    histograms[field] = {}
-                if row[field] not in histograms[field]:
-                    histograms[field][row[field]] = 1
-                else:
-                    histograms[field][row[field]] += 1
-    if args.histogram:
-        for field, histogram in histograms.items():
-            print(f"Field: {field}")
-            if type(try_into_number(next(iter(histogram.keys())))) is not str:
-                sort = "key"
-                key_action = try_into_number
-            else:
-                sort = "count"
-                key_action = None
-            print(
-                histogram_str(histogram, sort=sort, legend=True, key_action=key_action)
-            )
-            print()
+    if args.column:
+        return _columnated_output(rolled_rows, fields, md_style=False)
+    elif args.markdown:
+        return _columnated_output(rolled_rows, fields, md_style=True)
+    elif args.histogram:
+        return _histogram_output(rolled_rows, fields)
+    else:
+        return _default_output(rolled_rows, fields)
 
 
 def main():
     try:
-        run(sys.argv[1:])
+        print(run(sys.argv[1:]))
     except Exception as e:
         _logger.critical("%s: %s", type(e).__name__, str(e))
         if hasattr(e, "__notes__"):
