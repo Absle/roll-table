@@ -10,24 +10,18 @@ from typing import Any
 from roll_table.logger_adapter import PathLineLogAdapter
 from roll_table.parsing.line import MAGIC_FIELDS
 from roll_table.table_manager import TableManager
-from roll_table.utils import (
-    LOG_ENVAR,
-    PROG,
-    columnate,
-    histogram_str,
-    try_into_number,
-    user_app_log_dir,
-)
+from roll_table.utils import columnate, histogram_str, try_into_number, user_app_log_dir
+
+PROG = "roll-table"
+LOG_ENVAR = "ROLL_TABLE_LOG_LEVEL"
 
 _logger = PathLineLogAdapter(logging.getLogger(__name__))
 
 
 class InvalidFieldError(Exception):
     def __init__(self, csv_path: str, invalid_fields: set):
-        invalid_str = ", ".join(invalid_fields)
-        super().__init__(
-            f"{csv_path} does not have the following fields: {invalid_str}"
-        )
+        invalid_str = ", ".join([f"'{f}'" for f in invalid_fields])
+        super().__init__(f"{csv_path} does not have fields {invalid_str}")
 
 
 def _init_cli_logging(log_arg: str, cleanup: bool = True):
@@ -70,7 +64,7 @@ def _init_cli_logging(log_arg: str, cleanup: bool = True):
         return
 
     # Create log file name using a ISO-8601 basic format timestamp
-    cli_log_file_fmt = "{}" + f"_{PROG}_cli.log"
+    cli_log_file_fmt = "{}" + f"_{PROG}-cli.log"
     timestamp = datetime.datetime.now().isoformat(timespec="milliseconds")
     timestamp = timestamp.replace("-", "").replace(":", "")
     log_path = log_home.joinpath(cli_log_file_fmt.format(timestamp)).absolute()
@@ -255,7 +249,8 @@ def run(argv: list[str]) -> str:
         # Verify all field names are valid
         invalid_fields = set(args.fields).difference(table.field_names)
         if len(invalid_fields) > 0:
-            raise InvalidFieldError(str(csv_path), invalid_fields)
+            relative = str(csv_path.absolute().relative_to(Path.cwd()))
+            raise InvalidFieldError(relative, invalid_fields)
         fields = args.fields
     else:
         fields = [field for field in table.field_names if field not in MAGIC_FIELDS]
@@ -278,11 +273,20 @@ def main():
     try:
         print(run(sys.argv[1:]))
     except Exception as e:
-        _logger.critical("%s: %s", type(e).__name__, str(e))
+        err_name = "".join(
+            [
+                c if c.islower() else (f" {c.lower()}" if i != 0 else c.lower())
+                for i, c in enumerate(type(e).__name__)
+            ]
+        )
+
+        _logger.critical("%s: %s", err_name, str(e))
         if hasattr(e, "__notes__"):
             for note in e.__notes__:
                 _logger.critical(note)
+
         if _logger.getEffectiveLevel() <= logging.DEBUG:
+            # If we're debugging anyways, re-raise the exception to get full stack trace
             raise
         exit(1)
     exit(0)
