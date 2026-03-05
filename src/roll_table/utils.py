@@ -200,7 +200,7 @@ def columnate(
         sep_row = ["-" * max(width, 3) for width in column_widths]
         string_rows.insert(1, sep_row)
 
-    sep = " | " if md_style else "  "
+    sep = " | " if md_style else " "
     string_rows = [
         sep.join([f"{field:{column_widths[i]}}" for i, field in enumerate(row)])
         for row in string_rows

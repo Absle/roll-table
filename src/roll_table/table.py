@@ -32,16 +32,34 @@ _logger = PathLineLogAdapter(logging.getLogger(__name__))
 
 
 class Table:
+    # Absolute path to the loaded CSV file
     _path: Path
+
+    # Path to loaded CSV relative to working directory
     _relative_path: Path
+
+    # Field name in the header row of the table and metadata
     _field_names: list[str]
+
+    # Data rows loaded from the CSV file
     _rows: list[dict[str, str | ReplacementString]]
+
+    # Optional dice-arithmetic expression from the dice roll column.
     # None if there is no dice roll column, DiceArithExpr if there is a dice roll column
     # and it loads successfully, False if there is a dice roll column but it fails to
-    # parse for some reason
+    # parse for some reason.
     _roll_expr: DiceArithExpr | bool | None
+
+    # Mapping between self._roll_expr results and indices of self._rows if a valid dice
+    # roll column exists
     _roll_to_index: dict[int, int]
+
+    # The smallest roll result defined in the dice roll column, used to detect
+    # out-of-bounds rolls
     _roll_min: int
+
+    # The largest roll result defined in the dice roll column, used to to detect
+    # out-of-bounds rolls
     _roll_max: int
 
     def __init__(self, filepath: Path):
@@ -68,6 +86,7 @@ class Table:
             for l, d in enumerate(raw_csv)
             if d.strip('"').startswith(LineSyntax.DIRECTIVE.value)
         ]
+
         for line, directive_str in line_directives:
             try:
                 directive = parse_directive(directive_str, self.directory)
@@ -164,6 +183,8 @@ class Table:
         lines = [line for line, _ in line_rows]
         for index, (line, row) in enumerate(zip(lines[1:], rows)):
             # Add metadata columns to each row
+            if MagicField.REST.value not in row:
+                row[MagicField.REST.value] = ""
             row[MagicField.INDEX.value] = index
             row[MagicField.LINE.value] = line
 
